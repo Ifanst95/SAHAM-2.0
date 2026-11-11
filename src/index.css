@@ -1531,7 +1531,7 @@ footer nav a:hover {
   }
 }
 
-/* Smooth Continuous BEI Ticker Marquee */
+/* Smooth Continuous BEI Ticker Marquee - Speed reduced to calm & readable pace */
 @keyframes bei-ticker-marquee {
   0% {
     transform: translate3d(0, 0, 0);
@@ -1546,8 +1546,20 @@ footer nav a:hover {
   align-items: center;
   width: max-content;
   white-space: nowrap;
-  animation: bei-ticker-marquee 110s linear infinite;
+  animation: bei-ticker-marquee 700s linear infinite;
   will-change: transform;
+}
+
+.bei-ticker-track.speed-slow {
+  animation-duration: 800s !important;
+}
+
+.bei-ticker-track.speed-normal {
+  animation-duration: 550s !important;
+}
+
+.bei-ticker-track.speed-fast {
+  animation-duration: 380s !important;
 }
 
 .bei-ticker-track:hover {
@@ -1558,7 +1570,46 @@ footer nav a:hover {
   animation-play-state: paused !important;
 }
 
-/* Smooth Continuous Downward Global Ticker Marquee */
+/* Smooth Continuous Horizontal Global Ticker Marquee */
+@keyframes global-ticker-horizontal {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.global-ticker-horizontal-track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  white-space: nowrap;
+  animation: global-ticker-horizontal 650s linear infinite;
+  will-change: transform;
+}
+
+.global-ticker-horizontal-track.speed-slow {
+  animation-duration: 750s !important;
+}
+
+.global-ticker-horizontal-track.speed-normal {
+  animation-duration: 500s !important;
+}
+
+.global-ticker-horizontal-track.speed-fast {
+  animation-duration: 350s !important;
+}
+
+.global-ticker-horizontal-track:hover {
+  animation-play-state: paused !important;
+}
+
+.global-ticker-horizontal-track.paused {
+  animation-play-state: paused !important;
+}
+
+/* Smooth Continuous Downward Global Ticker Marquee (Optional Drawer) */
 @keyframes global-ticker-down {
   0% {
     transform: translate3d(0, -50%, 0);
@@ -1571,7 +1622,7 @@ footer nav a:hover {
 .global-ticker-down-track {
   display: flex;
   flex-direction: column;
-  animation: global-ticker-down 48s linear infinite;
+  animation: global-ticker-down 90s linear infinite;
   will-change: transform;
 }
 

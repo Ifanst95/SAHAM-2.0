@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { db } from './src/server/db.ts';
-import { StockData, SignalData } from './src/server/initialData.ts';
+import type { StockData, SignalData } from './src/types.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +14,9 @@ async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
-  let PORT = Number(process.env.PORT) || 3000;
+  // AI Studio requires port 3000 on 0.0.0.0. Container process.env.PORT is often 8080 (Cloud Run)
+  // which is already occupied by the container proxy, so we default strictly to 3000.
+  let PORT = 3000;
   const portArgIdx = process.argv.indexOf('--port');
   if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
     const parsed = parseInt(process.argv[portArgIdx + 1], 10);
@@ -636,13 +638,52 @@ async function startServer() {
           } catch {}
         })
       );
+      // Sync live IHSG (^JKSE) index from BEI/IDX
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const r = await fetch(
+          'https://query1.finance.yahoo.com/v8/finance/chart/%5EJKSE?interval=1d&range=1d',
+          {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const j = await r.json();
+          const meta = j?.chart?.result?.[0]?.meta;
+          if (meta && typeof meta.regularMarketPrice === 'number') {
+            const livePrice = Number(meta.regularMarketPrice.toFixed(2));
+            const prevClose = Number((meta.chartPreviousClose || livePrice).toFixed(2));
+            const change = Number((livePrice - prevClose).toFixed(2));
+            const changePercent = Number(((change / prevClose) * 100).toFixed(2));
+            db.update((draft) => {
+              draft.marketConfig.ihsg = {
+                value: livePrice,
+                change: change,
+                changePercent: changePercent,
+              };
+              draft.marketConfig.lastUpdated = new Date().toISOString();
+              const idxIhsg = draft.marketConfig.globalIndices.find((x) => x.ticker === 'IHSG');
+              if (idxIhsg) {
+                idxIhsg.value = livePrice;
+                idxIhsg.changePercent = changePercent;
+              }
+            });
+          }
+        }
+      } catch {}
     } catch {}
   };
 
   syncTopBeiStocks();
   setInterval(() => {
     syncTopBeiStocks();
-  }, 35000);
+  }, 25000);
 
   // Global quotes API endpoint
   app.get('/api/global/quotes', (_req: Request, res: Response) => {
@@ -876,8 +917,12 @@ async function startServer() {
       cfg.ihsg.change = parseFloat((cfg.ihsg.change + ihsgFraction).toFixed(2));
       cfg.ihsg.changePercent = parseFloat(((cfg.ihsg.change / (cfg.ihsg.value - cfg.ihsg.change)) * 100).toFixed(2));
 
-      // Check signals against updated prices
+      // Check signals against updated prices and ensure signal date matches today in WIB
+      const todayYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
       draft.signals.forEach((sig) => {
+        if (!sig.signalDate || sig.signalDate < todayYmd) {
+          sig.signalDate = todayYmd;
+        }
         const stk = draft.stocks.find((s) => s.ticker === sig.ticker);
         if (!stk) return;
         if (stk.price >= sig.target1 && sig.status === 'active') {
@@ -977,7 +1022,7 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR === 'true' ? false : { server },
+        hmr: false,
       },
       appType: 'spa',
     });

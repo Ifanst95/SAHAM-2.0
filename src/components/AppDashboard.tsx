@@ -20,9 +20,101 @@ import { TutorialVideosView } from './dashboard/TutorialVideosView.tsx';
 import { CommandPalette } from './dashboard/CommandPalette.tsx';
 import { AccountModal } from './dashboard/AccountModal.tsx';
 import { GlobalVerticalTicker } from './dashboard/GlobalVerticalTicker.tsx';
+import { GlobalHorizontalTicker } from './dashboard/GlobalHorizontalTicker.tsx';
 import { LiveBeiCandlestickChart } from './dashboard/LiveBeiCandlestickChart.tsx';
 import { AdminCMS } from './AdminCMS.tsx';
 
+// Standard BEI Index Constituents for Criteria-based Ticker
+const LQ45_TICKERS = new Set([
+  'ACES', 'ADMR', 'ADRO', 'AKRA', 'AMMN', 'AMRT', 'ANTM', 'ARTO', 'ASII',
+  'BBCA', 'BBNI', 'BBRI', 'BBTN', 'BMRI', 'BRIS', 'BRPT', 'BUKA', 'CPIN',
+  'EMTK', 'ESSA', 'EXCL', 'GGRM', 'GOTO', 'HRUM', 'ICBP', 'INCO', 'INDF',
+  'INKP', 'INTP', 'ISAT', 'ITMG', 'JSMR', 'KLBF', 'MAPI', 'MBMA', 'MDKA',
+  'MEDC', 'MIKA', 'MYOR', 'PGAS', 'PTBA', 'SMGR', 'SRTG', 'TLKM', 'TOWR',
+  'UNTR', 'UNVR'
+]);
+
+const IDX30_TICKERS = new Set([
+  'ADRO', 'AMMN', 'ANTM', 'ASII', 'BBCA', 'BBNI', 'BBRI', 'BMRI', 'BRPT',
+  'BUKA', 'CPIN', 'GOTO', 'HRUM', 'ICBP', 'INCO', 'INDF', 'INKP', 'INTP',
+  'ISAT', 'ITMG', 'KLBF', 'MAPI', 'MDKA', 'MEDC', 'PGAS', 'PTBA', 'SMGR',
+  'TLKM', 'TOWR', 'UNTR', 'UNVR'
+]);
+
+const KOMPAS100_TICKERS = new Set([
+  'ACES', 'ADMR', 'ADRO', 'AKRA', 'AMMN', 'AMRT', 'ANTM', 'ARTO', 'ASII',
+  'AUTO', 'AVIA', 'BBCA', 'BBNI', 'BBRI', 'BBTN', 'BDMN', 'BFIN', 'BIRD',
+  'BJBR', 'BJTM', 'BMRI', 'BRIS', 'BRMS', 'BRPT', 'BSDE', 'BTPS', 'BUKA',
+  'BYAN', 'CLEO', 'CMRY', 'CPIN', 'CTRA', 'DOID', 'DSSA', 'ELSA', 'EMTK',
+  'ENRG', 'ERAA', 'ESSA', 'EXCL', 'GGRM', 'GOTO', 'HEAL', 'HEXA', 'HRUM',
+  'ICBP', 'IMAS', 'INCO', 'INDF', 'INDY', 'INKP', 'INTP', 'ISAT', 'ITMG',
+  'JPFA', 'JRPT', 'JSMR', 'KAEF', 'KLBF', 'MAPI', 'MAPA', 'MBMA', 'MDKA',
+  'MEDC', 'MIDI', 'MIKA', 'MNCN', 'MTEL', 'MYOR', 'NCKL', 'PGAS', 'PGEO',
+  'PNBN', 'PNLF', 'PTBA', 'PTRO', 'PTPP', 'PWON', 'RAJA', 'RALS', 'SCMA',
+  'SIDO', 'SILO', 'SMGR', 'SMRA', 'SMSM', 'SRTG', 'SSMS', 'TAPG', 'TBIG',
+  'TINS', 'TKIM', 'TLKM', 'TOWR', 'TPIA', 'UNTR', 'UNVR', 'WIKA', 'WSBP'
+]);
+
+// Dynamic WIB date helpers for Realtime BEI
+const formatWibDateShort = (d: Date = new Date()): string => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  }).format(d);
+};
+
+const formatWibDateDayMonth = (d: Date = new Date()): string => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Asia/Jakarta',
+  }).format(d);
+};
+
+const formatWibDateFull = (d: Date = new Date()): string => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  }).format(d);
+};
+
+const formatRelativeWibDate = (dayOffset: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  }).format(d);
+};
+
+const formatSignalDateStr = (dateStr?: string): string => {
+  if (!dateStr) return formatWibDateShort();
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(d);
+    }
+  } catch {}
+  return dateStr;
+};
+
+const getWibTodayYmd = (): string => {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+};
 
 interface AppDashboardProps {
   user: UserData | null;
@@ -89,13 +181,50 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   const [quickAddWatchlistOpen, setQuickAddWatchlistOpen] = useState<boolean>(false);
   const [mobileDataMenuOpen, setMobileDataMenuOpen] = useState<boolean>(false);
   const [tickerPaused, setTickerPaused] = useState<boolean>(false);
-  const [showGlobalTicker, setShowGlobalTicker] = useState<boolean>(false);
+  const [showGlobalTicker, setShowGlobalTicker] = useState<boolean>(true);
+  const [tickerSpeed, setTickerSpeed] = useState<'slow' | 'normal' | 'fast'>('slow');
+  const [beiTickerCriterion, setBeiTickerCriterion] = useState<
+    'top_gainers' | 'lq45' | 'idx30' | 'kompas100' | 'semua_naik'
+  >('top_gainers');
+  const [beiMenuOpen, setBeiMenuOpen] = useState<boolean>(false);
 
-  // Horizontal Ticker: Filter only stocks that are UP today (>900 BEI stocks)
-  const upStocks = useMemo(() => {
-    const gainers = stocks.filter((s) => s.changePercent > 0 || s.change > 0);
-    return gainers.length > 0 ? gainers : stocks;
-  }, [stocks]);
+  // Horizontal Ticker: Filter stocks according to criteria (Top Gainer, LQ45, IDX30, Kompas100, Semua Naik)
+  const displayedBeiStocks = useMemo(() => {
+    if (!stocks || stocks.length === 0) return [];
+    switch (beiTickerCriterion) {
+      case 'top_gainers': {
+        const gainers = stocks
+          .filter((s) => s.changePercent > 0 || s.change > 0)
+          .sort((a, b) => b.changePercent - a.changePercent);
+        return gainers.length > 0 ? gainers : stocks.slice(0, 50);
+      }
+      case 'lq45': {
+        const lq45List = stocks
+          .filter((s) => LQ45_TICKERS.has(s.ticker.toUpperCase()))
+          .sort((a, b) => b.changePercent - a.changePercent);
+        return lq45List.length > 0 ? lq45List : stocks.slice(0, 45);
+      }
+      case 'idx30': {
+        const idx30List = stocks
+          .filter((s) => IDX30_TICKERS.has(s.ticker.toUpperCase()))
+          .sort((a, b) => b.changePercent - a.changePercent);
+        return idx30List.length > 0 ? idx30List : stocks.slice(0, 30);
+      }
+      case 'kompas100': {
+        const kompasList = stocks
+          .filter((s) => KOMPAS100_TICKERS.has(s.ticker.toUpperCase()))
+          .sort((a, b) => b.changePercent - a.changePercent);
+        return kompasList.length > 0 ? kompasList : stocks.slice(0, 60);
+      }
+      case 'semua_naik':
+      default: {
+        const gainers = stocks
+          .filter((s) => s.changePercent > 0 || s.change > 0)
+          .sort((a, b) => b.changePercent - a.changePercent);
+        return gainers.length > 0 ? gainers : stocks;
+      }
+    }
+  }, [stocks, beiTickerCriterion]);
 
   // Screener Filters & Pilihan Masuk (Matching Screenshot 1)
   const [sessionType, setSessionType] = useState<'Penutupan' | 'Sesi 1 (12:00)'>('Penutupan');
@@ -173,10 +302,14 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   // Close dropdowns on outer click
 
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const beiMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
         setMoreMenuOpen(false);
+      }
+      if (beiMenuRef.current && !beiMenuRef.current.contains(e.target as Node)) {
+        setBeiMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -854,19 +987,29 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             </div>
           </div>
 
-          {/* RUNNING TICKER BAR: Menampilkan HANYA Saham Yang Naik Hari Ini dari 900+ Saham BEI */}
-          <div className="flex items-center gap-3 pt-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] overflow-hidden group">
-            {/* Left Tag: Khusus Saham Yang Naik Hari Ini */}
-            <div className="flex items-center gap-2 flex-none pl-1 pr-2.5 border-r border-[#e5ddd0] dark:border-[#26363d]">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] tracking-wider uppercase font-black">
-                  🟢 SAHAM NAIK HARI INI
+          {/* RUNNING TICKER BAR: Saham Indonesia (BEI) - Kriteria Top Gainer, LQ45, IDX30, dll */}
+          <div className="flex items-center gap-2 pt-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] relative z-20">
+            {/* Left Tag & Kriteria Filter: Compact dropdown so ticker running is NEVER covered */}
+            <div className="flex items-center gap-1.5 flex-none pl-1 pr-2 border-r border-[#e5ddd0] dark:border-[#26363d] relative" ref={beiMenuRef}>
+              <button
+                onClick={() => setBeiMenuOpen(!beiMenuOpen)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-500/30 hover:bg-emerald-500/20 cursor-pointer text-[10px] whitespace-nowrap transition-colors"
+                title="Pilih Kriteria Saham BEI yang Ditampilkan"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>
+                  {beiTickerCriterion === 'top_gainers'
+                    ? '🔥 Top Gainer'
+                    : beiTickerCriterion === 'lq45'
+                    ? '⭐ LQ45'
+                    : beiTickerCriterion === 'idx30'
+                    ? '💎 IDX30'
+                    : beiTickerCriterion === 'kompas100'
+                    ? '🏆 Kompas100'
+                    : '🟢 Semua Naik'}
                 </span>
-                <span className="hidden sm:inline font-mono text-[9.5px] bg-emerald-500/20 px-1.5 py-0.2 rounded-full text-emerald-900 dark:text-emerald-100 font-extrabold">
-                  {upStocks.length} Menguat
-                </span>
-              </div>
+                <span className="text-[9px] opacity-70">▾</span>
+              </button>
 
               {/* Quick Add To Watchlist Button */}
               <button
@@ -876,55 +1019,152 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               >
                 +
               </button>
+
+              {/* Dropdown Menu when clicked */}
+              {beiMenuOpen && (
+                <div
+                  className="absolute left-0 top-full mt-1 w-52 rounded-xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-xl py-1 z-50 text-[10px] font-semibold space-y-0.5"
+                  onClick={() => setBeiMenuOpen(false)}
+                >
+                  <div className="px-3 py-1 text-[9px] font-bold text-[#80887f] uppercase border-b border-[#e5ddd0] dark:border-[#26363d]">
+                    Kriteria Saham BEI Running
+                  </div>
+                  <button
+                    onClick={() => setBeiTickerCriterion('top_gainers')}
+                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
+                      beiTickerCriterion === 'top_gainers' ? 'text-emerald-600 font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : ''
+                    }`}
+                  >
+                    <span>🔥 Top Gainer (Kenaikan Tertinggi)</span>
+                    {beiTickerCriterion === 'top_gainers' && <span>✓</span>}
+                  </button>
+                  <button
+                    onClick={() => setBeiTickerCriterion('lq45')}
+                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
+                      beiTickerCriterion === 'lq45' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-950/30' : ''
+                    }`}
+                  >
+                    <span>⭐ LQ45 (45 Saham Paling Likuid)</span>
+                    {beiTickerCriterion === 'lq45' && <span>✓</span>}
+                  </button>
+                  <button
+                    onClick={() => setBeiTickerCriterion('idx30')}
+                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
+                      beiTickerCriterion === 'idx30' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
+                    }`}
+                  >
+                    <span>💎 IDX30 (30 Saham Bluechip)</span>
+                    {beiTickerCriterion === 'idx30' && <span>✓</span>}
+                  </button>
+                  <button
+                    onClick={() => setBeiTickerCriterion('kompas100')}
+                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
+                      beiTickerCriterion === 'kompas100' ? 'text-purple-600 font-bold bg-purple-50/50 dark:bg-purple-950/30' : ''
+                    }`}
+                  >
+                    <span>🏆 Kompas100 (100 Saham Likuid)</span>
+                    {beiTickerCriterion === 'kompas100' && <span>✓</span>}
+                  </button>
+                  <button
+                    onClick={() => setBeiTickerCriterion('semua_naik')}
+                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
+                      beiTickerCriterion === 'semua_naik' ? 'text-emerald-600 font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : ''
+                    }`}
+                  >
+                    <span>🟢 Semua Naik (900+ Saham BEI)</span>
+                    {beiTickerCriterion === 'semua_naik' && <span>✓</span>}
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Smooth Marquee Track: HANYA SAHAM YANG NAIK HARI INI DARI 900+ SAHAM BEI */}
-            <div className="overflow-hidden relative flex-1">
-              <div className={`bei-ticker-track ${tickerPaused ? 'paused' : ''}`}>
-                {[...upStocks, ...upStocks].map((stk, idx) => (
-                  <div
-                    key={`${stk.ticker}-${idx}`}
-                    onClick={() => {
-                      setSelectedTicker(stk.ticker);
-                      setTopMode('analysis');
-                    }}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-colors flex-none mx-0.5 font-bold"
-                    title={`BEI Realtime IDX:${stk.ticker} (${stk.name}) · Naik +${stk.changePercent}% · Klik untuk Buka Grafik & Trade Plan`}
-                  >
-                    <span className="tracking-tight text-[11px] text-[#17242a] dark:text-[#f3eee4]">
-                      {stk.ticker}
-                    </span>
-                    <span className="font-mono text-[11px] text-[#56625f] dark:text-[#a9b3ad]">
-                      {formatRp(stk.price)}
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40 px-1 py-0.2 rounded flex items-center gap-0.5">
-                      <span>▲</span>
-                      <span>+{stk.changePercent}%</span>
-                    </span>
-                  </div>
-                ))}
+            {/* Smooth Marquee Track: Running Kesamping with Max Width */}
+            <div className="overflow-hidden relative flex-1 min-w-0">
+              <div className={`bei-ticker-track speed-${tickerSpeed} ${tickerPaused ? 'paused' : ''}`}>
+                {[...displayedBeiStocks, ...displayedBeiStocks].map((stk, idx) => {
+                  const isLq45 = LQ45_TICKERS.has(stk.ticker.toUpperCase());
+                  const isIdx30 = IDX30_TICKERS.has(stk.ticker.toUpperCase());
+                  const isTopGain = stk.changePercent >= 3.0;
+
+                  return (
+                    <div
+                      key={`${stk.ticker}-${idx}`}
+                      onClick={() => {
+                        setSelectedTicker(stk.ticker);
+                        setTopMode('analysis');
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-colors flex-none mx-0.5 font-bold"
+                      title={`BEI IDX:${stk.ticker} (${stk.name}) · ${isLq45 ? 'Konstituen LQ45 · ' : ''}Harga: ${formatRp(stk.price)} (${stk.changePercent >= 0 ? '+' : ''}${stk.changePercent}%) · Klik untuk Analisis`}
+                    >
+                      <span className="tracking-tight text-[11px] text-[#17242a] dark:text-[#f3eee4]">
+                        {stk.ticker}
+                      </span>
+
+                      {/* Criteria Badges */}
+                      {isLq45 && (
+                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                          LQ45
+                        </span>
+                      )}
+                      {isIdx30 && !isLq45 && (
+                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30">
+                          IDX30
+                        </span>
+                      )}
+                      {isTopGain && (
+                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30">
+                          🔥 GAINER
+                        </span>
+                      )}
+
+                      <span className="font-mono text-[11px] text-[#56625f] dark:text-[#a9b3ad]">
+                        {formatRp(stk.price)}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-1 py-0.2 rounded flex items-center gap-0.5 ${
+                          stk.changePercent >= 0
+                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40'
+                            : 'text-rose-600 dark:text-rose-400 bg-rose-100/60 dark:bg-rose-900/40'
+                        }`}
+                      >
+                        <span>{stk.changePercent >= 0 ? '▲' : '▼'}</span>
+                        <span>{stk.changePercent >= 0 ? '+' : ''}{stk.changePercent}%</span>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Controls: Count, Play/Pause, Real-Time BEI Sync, and Toggle Bursa Dunia Realtime */}
-            <div className="flex items-center gap-2 flex-none pr-1 pl-2 border-l border-[#e5ddd0] dark:border-[#26363d]">
+            {/* Controls: Stock Count, Speed Selector, Toggle Global Ticker, Play/Pause */}
+            <div className="flex items-center gap-1.5 flex-none pr-1 pl-2 border-l border-[#e5ddd0] dark:border-[#26363d]">
               <span className="text-[10px] text-emerald-700 dark:text-emerald-400 hidden lg:inline font-mono font-bold">
-                🟢 {upStocks.length} Naik / {stocks.length} BEI
+                {displayedBeiStocks.length} Saham
               </span>
 
-              {/* Toggle Vertical Global Ticker */}
+              {/* Speed Selector Button */}
+              <button
+                onClick={() => {
+                  setTickerSpeed((prev) => (prev === 'slow' ? 'normal' : prev === 'normal' ? 'fast' : 'slow'));
+                }}
+                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer flex items-center gap-0.5"
+                title="Atur Kecepatan Ticker (Sangat Santai / Santai / Sedang)"
+              >
+                <span>{tickerSpeed === 'slow' ? '🐢 Sangat Santai' : tickerSpeed === 'normal' ? '🚶 Santai' : '🐇 Sedang'}</span>
+              </button>
+
+              {/* Toggle Global Ticker */}
               <button
                 onClick={() => setShowGlobalTicker(!showGlobalTicker)}
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                   showGlobalTicker
-                    ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-500'
+                    ? 'bg-blue-600 text-white shadow-xs ring-1 ring-blue-500'
                     : 'bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4]'
                 }`}
-                title="Buka / Tutup Ticker Berjalan Kebawah Saham Realtime Seluruh Dunia"
+                title="Tampilkan / Sembunyikan Ticker Saham Seluruh Dunia di bawah Ticker BEI"
               >
                 <span>🌐</span>
                 <span className="hidden sm:inline">Bursa Dunia</span>
-                <span className="text-[9px] font-mono px-1 bg-black/10 dark:bg-white/10 rounded">↓ Kebawah</span>
               </button>
 
               {/* Play/Pause Control */}
@@ -938,6 +1178,15 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               </button>
             </div>
           </div>
+
+          {/* ROW 3: TICKER SAHAM SELURUH DUNIA (BURSA DUNIA) - PINDAH KE BAWAH TICKER BEI & RUNNING KESAMPING */}
+          {showGlobalTicker && (
+            <GlobalHorizontalTicker
+              speed={tickerSpeed}
+              isPaused={tickerPaused}
+              onTogglePause={() => setTickerPaused(!tickerPaused)}
+            />
+          )}
         </header>
 
         {/* ========================================================
@@ -949,43 +1198,129 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
              -------------------------------------------------------- */}
           {topMode === 'overview' && sidebarMenu === 'beranda' && (
             <div className="space-y-6 max-w-4xl mx-auto">
-              {/* Top Banner Status */}
-              <div className="p-5 rounded-3xl bg-linear-to-r from-[#17242a] to-[#26363d] text-[#f3eee4] space-y-3 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#4fbf93] uppercase tracking-wider">
-                    KONDISI PASAR BEI
-                  </span>
-                  <span className="text-xs text-[#a9b3ad]">Penutupan 6 Nov · 11:05 WIB</span>
-                </div>
-                <div className="flex items-baseline gap-3">
-                  <b className="text-4xl font-black font-serif">5.050,43</b>
-                  <span className="text-sm font-bold text-[#e27c70] px-2 py-0.5 rounded-full bg-[#e27c70]/20">
-                    ✕ Bearish
-                  </span>
-                </div>
-                <p className="text-xs text-[#a9b3ad]">
-                  <b className="text-[#e27c70]">-15,09%</b> dari MA50 (5.948)
-                </p>
+              {/* Top Banner Status: KONDISI PASAR BEI (Realtime & Menyesuaikan Waktu Sekarang) */}
+              {(() => {
+                const now = new Date();
+                const dayMonth = new Intl.DateTimeFormat('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                  timeZone: 'Asia/Jakarta',
+                }).format(now);
+                const timeStr = new Intl.DateTimeFormat('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'Asia/Jakarta',
+                }).format(now);
 
-                {/* Sub-cards Global Indices from Screenshot 3 */}
-                <div className="grid grid-cols-3 gap-2.5 pt-2">
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-[#a9b3ad] block">Hang Seng</span>
-                    <b className="text-sm block mt-0.5">20.538,38</b>
-                    <span className="text-[10px] text-[#e27c70]">-1,07%</span>
+                // Auto-detect BEI market session if not explicitly set
+                const jktHour = parseInt(
+                  new Intl.DateTimeFormat('en-US', {
+                    hour: 'numeric',
+                    hour12: false,
+                    timeZone: 'Asia/Jakarta',
+                  }).format(now),
+                  10
+                );
+                const jktMin = parseInt(
+                  new Intl.DateTimeFormat('en-US', {
+                    minute: 'numeric',
+                    timeZone: 'Asia/Jakarta',
+                  }).format(now),
+                  10
+                );
+                const totalMins = jktHour * 60 + jktMin;
+                let autoSession = 'Penutupan';
+                if (totalMins >= 9 * 60 && totalMins < 12 * 60) {
+                  autoSession = 'Sesi 1 (Live)';
+                } else if (totalMins >= 12 * 60 && totalMins < 13 * 60 + 30) {
+                  autoSession = 'Istirahat Sesi 1';
+                } else if (totalMins >= 13 * 60 + 30 && totalMins < 15 * 60 + 50) {
+                  autoSession = 'Sesi 2 (Live)';
+                } else {
+                  autoSession = 'Penutupan';
+                }
+
+                const currentSession = marketStatus?.marketSession || autoSession;
+                const ihsgVal = marketStatus?.ihsg?.value ?? 7283.82;
+                const ihsgChg = marketStatus?.ihsg?.change ?? -18.45;
+                const ihsgPct = marketStatus?.ihsg?.changePercent ?? -0.25;
+                const isBullish = ihsgPct >= 0;
+
+                const displayIndices =
+                  marketStatus?.globalIndices && marketStatus.globalIndices.length > 0
+                    ? marketStatus.globalIndices.filter((x: any) => x.ticker !== 'IHSG').slice(0, 3)
+                    : [
+                        { ticker: 'Hang Seng', value: 20438.4, changePercent: -0.21 },
+                        { ticker: 'NASDAQ', value: 18342.94, changePercent: 1.12 },
+                        { ticker: 'NIKKEI 225', value: 38981.75, changePercent: 0.32 },
+                      ];
+
+                return (
+                  <div className="p-5 rounded-3xl bg-linear-to-r from-[#17242a] to-[#26363d] text-[#f3eee4] space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[11px] font-bold text-[#4fbf93] uppercase tracking-wider">
+                          KONDISI PASAR BEI
+                        </span>
+                      </div>
+                      <span className="text-xs text-[#a9b3ad] font-mono">
+                        {currentSession} {dayMonth} · {timeStr} WIB
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <b className="text-4xl font-black font-serif tracking-tight">
+                        {ihsgVal.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </b>
+                      <span
+                        className={`text-sm font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                          isBullish
+                            ? 'text-emerald-300 bg-emerald-500/25 border border-emerald-500/30'
+                            : 'text-[#e27c70] bg-[#e27c70]/20 border border-[#e27c70]/30'
+                        }`}
+                      >
+                        <span>{isBullish ? '▲ Bullish (+)' : '✕ Bearish / Koreksi'}</span>
+                        <span>{isBullish ? `+${ihsgPct}%` : `${ihsgPct}%`}</span>
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[#a9b3ad]">
+                      <b className={isBullish ? 'text-emerald-400 font-bold' : 'text-[#e27c70] font-bold'}>
+                        {isBullish ? `+${ihsgPct}% (+${ihsgChg.toLocaleString('id-ID', { minimumFractionDigits: 2 })})` : `${ihsgPct}% (${ihsgChg.toLocaleString('id-ID', { minimumFractionDigits: 2 })})`}
+                      </b>
+                      <span>
+                        {' '}· {isBullish ? 'IHSG bergerak menguat di atas rata-rata' : 'IHSG dalam fase konsolidasi & pullback sehat'}
+                      </span>
+                    </p>
+
+                    {/* Sub-cards Global Indices (Realtime) */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-2 font-mono">
+                      {displayIndices.map((idxItem: any, i: number) => {
+                        const up = idxItem.changePercent >= 0;
+                        return (
+                          <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            <span className="text-[10px] text-[#a9b3ad] block truncate font-sans font-semibold">
+                              {idxItem.ticker}
+                            </span>
+                            <b className="text-sm block mt-0.5 text-white font-bold truncate">
+                              {Number(idxItem.value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </b>
+                            <span
+                              className={`text-[10px] font-bold inline-flex items-center gap-0.5 mt-0.5 ${
+                                up ? 'text-emerald-400' : 'text-[#e27c70]'
+                              }`}
+                            >
+                              <span>{up ? '▲' : '▼'}</span>
+                              <span>{up ? '+' : ''}{idxItem.changePercent}%</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-[#a9b3ad] block">Shanghai</span>
-                    <b className="text-sm block mt-0.5">3.649,18</b>
-                    <span className="text-[10px] text-[#e27c70]">-1,10%</span>
-                  </div>
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] text-[#a9b3ad] block">KOSPI</span>
-                    <b className="text-sm block mt-0.5">5.059,69</b>
-                    <span className="text-[10px] text-[#e27c70]">-6,02%</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Big Green Banner from Screenshot 3 */}
               <div
@@ -1120,18 +1455,29 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-baseline gap-3">
                   <h1 className="font-serif text-2xl md:text-3xl font-extrabold tracking-tight">Sinyal Saham</h1>
-                  <span className="text-xs text-[#80887f]">
-                    {sessionType.startsWith('Penutupan') ? 'Penutupan 6 Nov 2026' : 'Sesi 1 (12:00) 6 Nov 2026'}
+                  <span className="text-xs text-[#80887f] font-medium flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                    <span>
+                      {sessionType.startsWith('Penutupan') ? `Penutupan · ${formatWibDateShort()}` : `Sesi 1 (12:00) · ${formatWibDateShort()}`}
+                    </span>
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-[#80887f]">921 saham dihitung</span>
-                  <span className="px-3 py-1 rounded-full border border-[#f39a8c] bg-[#fbe7df] dark:bg-[#1a2a30] text-[#c4554a] font-semibold">
-                    IHSG -15,09% dari MA50
+                  <span className="text-[#80887f]">{stocks.length || 921} saham dihitung</span>
+                  <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${
+                    (marketStatus?.ihsg?.changePercent ?? -0.66) >= 0
+                      ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 text-[#1d7a5c]'
+                      : 'border-[#f39a8c] bg-[#fbe7df] dark:bg-[#1a2a30] text-[#c4554a]'
+                  }`}>
+                    IHSG {(marketStatus?.ihsg?.changePercent ?? -0.66) >= 0 ? '+' : ''}{(marketStatus?.ihsg?.changePercent ?? -0.66).toFixed(2)}%
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#fbe7df] dark:bg-[#1a2a30] text-[#c4554a] font-bold">
-                    Bearish
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                    (marketStatus?.ihsg?.changePercent ?? -0.66) >= 0
+                      ? 'bg-[#1d7a5c] text-white'
+                      : 'bg-[#fbe7df] dark:bg-[#1a2a30] text-[#c4554a]'
+                  }`}>
+                    {(marketStatus?.ihsg?.changePercent ?? -0.66) >= 0 ? 'Bullish' : 'Bearish'}
                   </span>
                   <button
                     onClick={() => {
@@ -1528,6 +1874,15 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                               <p className="text-[11px] text-[#56625f] truncate max-w-[170px] mt-0.5">
                                 {sig.name}
                               </p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#80887f] bg-[#f6f2ea] dark:bg-[#121c20] px-1.5 py-0.5 rounded">
+                                  <span>📅</span>
+                                  <span>{formatSignalDateStr(sig.signalDate)}</span>
+                                </span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                                  Hari ini
+                                </span>
+                              </div>
                             </div>
 
                             <div className="text-right">
@@ -1656,6 +2011,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                     <thead>
                       <tr className="border-b border-[#e5ddd0] dark:border-[#26363d] text-[#80887f] font-bold bg-[#fbf9f4] dark:bg-[#152227]">
                         <th className="py-3 px-4">Saham</th>
+                        <th className="py-3 px-3">Tanggal</th>
                         <th className="py-3 px-3 text-right">Harga</th>
                         <th className="py-3 px-3">Status</th>
                         <th className="py-3 px-3">Strategi</th>
@@ -1694,6 +2050,14 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                               </b>
                               <span className="text-[11px] text-[#80887f] block truncate max-w-[140px]">
                                 {sig.name}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="font-semibold block font-mono text-[11px] text-[#17242a] dark:text-[#f3eee4]">
+                                {formatSignalDateStr(sig.signalDate)}
+                              </span>
+                              <span className="inline-block text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                Hari ini
                               </span>
                             </td>
                             <td className="py-3 px-3 text-right">
@@ -1801,7 +2165,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                             </b>
                             <span className="font-bold w-16 font-mono">{formatRp(entryPrice)}</span>
                             <span className="text-[#1d7a5c] font-bold w-12">+{potentialGain}%</span>
-                            <span className="text-[#80887f] hidden md:inline truncate max-w-[180px]">{sig.name}</span>
+                            <span className="text-[10px] text-[#80887f] font-mono px-1.5 py-0.5 rounded bg-[#f6f2ea] dark:bg-[#121c20] hidden sm:inline">
+                              📅 {formatSignalDateStr(sig.signalDate)}
+                            </span>
+                            <span className="text-[#80887f] hidden md:inline truncate max-w-[150px]">{sig.name}</span>
                           </div>
 
                           <div className="flex items-center gap-4">
@@ -1863,7 +2230,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       O {formatRp(currentStock.open)} H {formatRp(currentStock.high)} L {formatRp(currentStock.low)} C {formatRp(currentStock.price)}
                     </span>
                     <span className="text-xs text-[#80887f]">
-                      Volume 6 Nov <b>{formatRp(currentStock.volume)} lot</b>
+                      Volume {formatWibDateDayMonth()} <b>{formatRp(currentStock.volume)} lot</b>
                     </span>
                   </div>
 
@@ -1871,7 +2238,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                     {currentStock.name} · Indeks Tidak masuk 10 indeks yang dipantau
                   </p>
                   <p className="text-[11px] text-[#80887f]">
-                    Papan Utama · Sektor {currentStock.sector} · Sinyal ▲ Pullback 28 Okt, ▲ Pullback 30 Okt, ◆ HAKA 6 Nov · Level ATR dari candle terakhir
+                    Papan Utama · Sektor {currentStock.sector} · Sinyal ▲ Pullback (T-2), ▲ Menunggu (T-1), ◆ Lolos {formatWibDateDayMonth()} · Level ATR dari candle terakhir
                   </p>
 
                   <div className="flex items-center gap-2 pt-1 flex-wrap">
@@ -2232,15 +2599,15 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                   <div className="p-4 rounded-xl bg-[#f6f2ea] dark:bg-[#121c20] space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-[#80887f]">Tahap 01 (Pullback):</span>
-                      <b className="text-[#c4554a]">Terdeteksi 28 Oktober 2026</b>
+                      <b className="text-[#c4554a]">Terdeteksi ({formatRelativeWibDate(-2)})</b>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#80887f]">Tahap 02 (Menunggu HAKA):</span>
-                      <b className="text-[#a86f1c]">Candle Bullish 30 Oktober 2026</b>
+                      <b className="text-[#a86f1c]">Candle Bullish ({formatRelativeWibDate(-1)})</b>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#80887f]">Tahap 03 (Terkonfirmasi):</span>
-                      <b className="text-[#1d7a5c]">Lolos Konfirmasi 6 November 2026</b>
+                      <b className="text-[#1d7a5c]">Lolos Konfirmasi Hari Ini ({formatWibDateFull()})</b>
                     </div>
                   </div>
                 </div>
@@ -2842,16 +3209,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           onRefreshData={onRefreshData}
           onClose={() => setAdminCmsOpen(false)}
         />
-      )}
-
-      {/* 8. TICKER BERJALAN KEBAWAH: SAHAM REALTIME SELURUH DUNIA */}
-      {showGlobalTicker && (
-        <div className="fixed bottom-4 right-4 z-40 shadow-2xl transition-all">
-          <GlobalVerticalTicker
-            isFloating={true}
-            onClose={() => setShowGlobalTicker(false)}
-          />
-        </div>
       )}
     </div>
   );

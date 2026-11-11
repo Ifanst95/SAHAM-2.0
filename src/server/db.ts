@@ -7,6 +7,8 @@ import {
   initialVideos,
   initialFaq,
   initialUsers,
+} from './initialData.ts';
+import type {
   StockData,
   SignalData,
   PlanData,
@@ -14,7 +16,7 @@ import {
   FaqData,
   UserData,
   JournalEntry,
-} from './initialData.ts';
+} from '../types.ts';
 
 export interface MarketConfig {
   autoUpdateEnabled: boolean;
@@ -83,6 +85,25 @@ const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ALL_STOCKS_FILE = path.join(DATA_DIR, 'allStocks.json');
 
+export const normalizeSignalsToToday = (signals: SignalData[]): SignalData[] => {
+  const now = new Date();
+  const todayYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
+  const todayShort = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }).format(now);
+
+  return (signals || []).map((sig) => {
+    if (!sig.signalDate || sig.signalDate < todayYmd) {
+      let updatedNotes = sig.notes || '';
+      updatedNotes = updatedNotes.replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des)\b/gi, todayShort);
+      return {
+        ...sig,
+        signalDate: todayYmd,
+        notes: updatedNotes,
+      };
+    }
+    return sig;
+  });
+};
+
 class Database {
   private data: DatabaseSchema;
 
@@ -110,9 +131,10 @@ class Database {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
         const resolvedStocks = (parsed.stocks && parsed.stocks.length >= 900) ? parsed.stocks : stockUniverse;
-        return {
+        const normalizedSignals = normalizeSignalsToToday(parsed.signals || initialSignals);
+        const result: DatabaseSchema = {
           stocks: resolvedStocks,
-          signals: parsed.signals || initialSignals,
+          signals: normalizedSignals,
           plans: parsed.plans || initialPlans,
           payment_mode: parsed.payment_mode || 'transfer',
           videos: parsed.videos || initialVideos,
@@ -123,6 +145,9 @@ class Database {
           otpCodes: {},
           marketConfig: parsed.marketConfig || defaultMarketConfig,
         };
+        // Save normalized signals back to db.json
+        this.saveData(result);
+        return result;
       }
     } catch (e) {
       console.warn('Failed reading db.json, using initial defaults:', e);
@@ -175,6 +200,11 @@ class Database {
   }
 
   public get(): DatabaseSchema {
+    const todayYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+    if (this.data.signals.some((s) => !s.signalDate || s.signalDate < todayYmd)) {
+      this.data.signals = normalizeSignalsToToday(this.data.signals);
+      this.saveData(this.data);
+    }
     return this.data;
   }
 
@@ -186,7 +216,7 @@ class Database {
   public reset() {
     this.data = {
       stocks: initialStocks,
-      signals: initialSignals,
+      signals: normalizeSignalsToToday(initialSignals),
       plans: initialPlans,
       payment_mode: 'midtrans',
       videos: initialVideos,

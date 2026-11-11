@@ -71,7 +71,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     name: 'Bank Central Asia Tbk',
     type: 'momentum',
     session: 'Penutupan',
-    signalDate: new Date().toISOString().split('T')[0],
+    signalDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()),
     status: 'active',
     entryPrice: 10450,
     breakoutLevel: 10500,
@@ -773,7 +773,10 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                   <tbody className="divide-y divide-[var(--line)]">
                     {signals.map((sig) => (
                       <tr key={sig.id} className="hover:bg-[var(--bg2)]">
-                        <td className="py-2 px-3 font-semibold">{sig.signalDate}</td>
+                        <td className="py-2 px-3 font-semibold whitespace-nowrap">
+                          <div>{sig.signalDate}</div>
+                          <span className="text-[10px] text-emerald-600 font-bold">Hari Ini</span>
+                        </td>
                         <td className="py-2 px-3 font-black text-[var(--ink)]">{sig.ticker}</td>
                         <td className="py-2 px-3">
                           <span className="font-bold text-[var(--up)] uppercase">{sig.type}</span>
