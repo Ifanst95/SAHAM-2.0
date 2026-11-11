@@ -1546,24 +1546,24 @@ footer nav a:hover {
   align-items: center;
   width: max-content;
   white-space: nowrap;
-  animation: bei-ticker-marquee 1800s linear infinite;
+  animation: bei-ticker-marquee 360s linear infinite;
   will-change: transform;
 }
 
 .bei-ticker-track.speed-ultraslow {
-  animation-duration: 2600s !important;
+  animation-duration: 600s;
 }
 
 .bei-ticker-track.speed-slow {
-  animation-duration: 1800s !important;
+  animation-duration: 400s;
 }
 
 .bei-ticker-track.speed-normal {
-  animation-duration: 1200s !important;
+  animation-duration: 250s;
 }
 
 .bei-ticker-track.speed-fast {
-  animation-duration: 800s !important;
+  animation-duration: 120s;
 }
 
 .bei-ticker-track:hover {
@@ -1589,24 +1589,24 @@ footer nav a:hover {
   align-items: center;
   width: max-content;
   white-space: nowrap;
-  animation: global-ticker-horizontal 1600s linear infinite;
+  animation: global-ticker-horizontal 75s linear infinite;
   will-change: transform;
 }
 
 .global-ticker-horizontal-track.speed-ultraslow {
-  animation-duration: 2400s !important;
+  animation-duration: 110s !important;
 }
 
 .global-ticker-horizontal-track.speed-slow {
-  animation-duration: 1600s !important;
+  animation-duration: 75s !important;
 }
 
 .global-ticker-horizontal-track.speed-normal {
-  animation-duration: 1000s !important;
+  animation-duration: 48s !important;
 }
 
 .global-ticker-horizontal-track.speed-fast {
-  animation-duration: 600s !important;
+  animation-duration: 30s !important;
 }
 
 .global-ticker-horizontal-track:hover {

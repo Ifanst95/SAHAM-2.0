@@ -36,7 +36,7 @@ export interface MarketConfig {
   updateLogs: {
     timestamp: string;
     message: string;
-    type: 'tick' | 'session' | 'manual';
+    type: 'tick' | 'session' | 'manual' | 'ksei' | 'ojk';
   }[];
 }
 

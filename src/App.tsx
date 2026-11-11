@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { LandingView } from './components/LandingView.tsx';
 import { AppDashboard } from './components/AppDashboard.tsx';
 import { PlansView } from './components/PlansView.tsx';
-import { AuthModal } from './components/AuthModal.tsx';
 import { StockData, SignalData, PlanData, VideoData, FaqData, UserData, JournalEntry } from './types.ts';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'plans'>('landing');
-  const [user, setUser] = useState<UserData | null>(null);
-
-  // Auth modal
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'daftar' | 'masuk'>('daftar');
+  const [currentView, setCurrentView] = useState<'app' | 'plans'>('app');
+  const [user, setUser] = useState<UserData | null>({
+    email: 'member@penyembuhluka.id',
+    role: 'member',
+    subscriptionActive: true,
+    subscriptionExpires: '2028-12-31',
+    lastLogin: new Date().toISOString(),
+  });
 
   // App Data
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -31,7 +31,7 @@ export default function App() {
     setTheme(initialTheme);
     document.documentElement.setAttribute('data-theme', initialTheme);
 
-    // Restore cached user session immediately for instant login state
+    // Restore cached user session immediately
     try {
       const savedUserStr = localStorage.getItem('pl_user');
       if (savedUserStr) {
@@ -42,23 +42,11 @@ export default function App() {
       }
     } catch {}
 
-    // Check URL parameters & hash
-    const hash = window.location.hash;
-    const params = new URLSearchParams(window.location.search);
     const pathname = window.location.pathname;
-
     if (pathname === '/app') {
       setCurrentView('app');
     } else if (pathname === '/langganan') {
       setCurrentView('plans');
-    }
-
-    if (hash === '#masuk' || params.get('next') || params.get('r')) {
-      setAuthMode('masuk');
-      setAuthModalOpen(true);
-    } else if (hash === '#daftar') {
-      setAuthMode('daftar');
-      setAuthModalOpen(true);
     }
   }, []);
 
@@ -212,7 +200,7 @@ export default function App() {
         } catch {
           // silent update
         }
-      }, 4000);
+      }, 3000);
     }
     return () => clearInterval(intervalId);
   }, [isAutoUpdating]);
@@ -282,52 +270,9 @@ export default function App() {
     }
   };
 
-  const handleOpenAuth = (mode: 'daftar' | 'masuk') => {
-    setAuthMode(mode);
-    setAuthModalOpen(true);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-    } catch {}
-    try {
-      localStorage.removeItem('pl_session');
-      localStorage.removeItem('pl_user');
-    } catch {}
-    setUser(null);
-    setCurrentView('landing');
-  };
-
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
-      {/* View Router */}
-      {currentView === 'landing' && (
-        <LandingView
-          user={user}
-          onOpenAuth={handleOpenAuth}
-          onNavigateToApp={() => setCurrentView('app')}
-          onLoginSuccess={(loggedInUser, token) => {
-            setUser(loggedInUser);
-            if (token) {
-              try {
-                localStorage.setItem('pl_session', token);
-              } catch {}
-            }
-            try {
-              localStorage.setItem('pl_user', JSON.stringify(loggedInUser));
-            } catch {}
-            setCurrentView('app');
-            refreshAllData();
-          }}
-          theme={theme}
-          toggleTheme={toggleTheme}
-        />
-      )}
-
+      {/* Main App Dashboard */}
       {currentView === 'app' && (
         <AppDashboard
           user={user}
@@ -345,9 +290,8 @@ export default function App() {
           onTriggerTick={handleTriggerTick}
           onToggleWatchlist={handleToggleWatchlist}
           onAddJournal={handleAddJournal}
-          onBackToLanding={() => setCurrentView('landing')}
+          onBackToLanding={() => setCurrentView('app')}
           onNavigateToPlans={() => setCurrentView('plans')}
-          onLogout={handleLogout}
           theme={theme}
           toggleTheme={toggleTheme}
           onRefreshData={refreshAllData}
@@ -358,31 +302,9 @@ export default function App() {
         <PlansView
           user={user}
           plans={plans}
-          onOpenAuth={handleOpenAuth}
           onNavigateToApp={() => setCurrentView('app')}
         />
       )}
-
-      {/* Sign-in / OTP Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        initialMode={authMode}
-        onClose={() => setAuthModalOpen(false)}
-        onLoginSuccess={(loggedInUser, token) => {
-          setUser(loggedInUser);
-          if (token) {
-            try {
-              localStorage.setItem('pl_session', token);
-            } catch {}
-          }
-          try {
-            localStorage.setItem('pl_user', JSON.stringify(loggedInUser));
-          } catch {}
-          setAuthModalOpen(false);
-          setCurrentView('app');
-          refreshAllData();
-        }}
-      />
     </div>
   );
 }

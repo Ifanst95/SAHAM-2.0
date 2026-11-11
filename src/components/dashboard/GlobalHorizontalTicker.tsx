@@ -101,78 +101,33 @@ export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
   }, [filteredAssets.length, speed]);
 
   return (
-    <div className="flex items-center gap-2 pt-1 pb-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] bg-[#f3ede1]/40 dark:bg-[#152328]/50 relative z-20">
-      {/* Left Compact Category Selector */}
-      <div className="flex items-center gap-1.5 flex-none pl-1 pr-2 border-r border-[#e5ddd0] dark:border-[#26363d] relative" ref={categoryMenuRef}>
+    <div className="flex items-center gap-2 py-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] bg-[#f3ede1]/40 dark:bg-[#152328]/50 relative z-20 w-full overflow-hidden">
+      {/* Left Minimal Category Selector */}
+      <div className="flex items-center gap-1 flex-none pl-1 pr-1.5 border-r border-[#e5ddd0] dark:border-[#26363d]">
         <button
-          onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 font-bold border border-blue-500/30 hover:bg-blue-500/20 cursor-pointer text-[10px] whitespace-nowrap transition-colors"
-          title="Pilih Kategori Bursa Dunia"
+          onClick={() => {
+            const nextCat: Record<string, 'all' | 'stock' | 'index' | 'commodity' | 'forex'> = {
+              all: 'index',
+              index: 'stock',
+              stock: 'commodity',
+              commodity: 'forex',
+              forex: 'all',
+            };
+            setCategory(nextCat[category] || 'all');
+          }}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 font-bold border border-blue-500/30 hover:bg-blue-500/20 cursor-pointer text-[10px] whitespace-nowrap transition-colors"
+          title="Klik untuk ganti kategori aset dunia"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           <span>{getCategoryLabel()}</span>
-          <span className="text-[9px] opacity-70">▾</span>
+          <span className="text-[9px] opacity-70">↻</span>
         </button>
-
-        {categoryMenuOpen && (
-          <div
-            className="absolute left-0 top-full mt-1 w-44 rounded-xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-xl py-1 z-50 text-[10px] font-semibold space-y-0.5"
-            onClick={() => setCategoryMenuOpen(false)}
-          >
-            <button
-              onClick={() => setCategory('all')}
-              className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                category === 'all' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-              }`}
-            >
-              <span>🌐 Semua Aset Global</span>
-              {category === 'all' && <span>✓</span>}
-            </button>
-            <button
-              onClick={() => setCategory('index')}
-              className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                category === 'index' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-              }`}
-            >
-              <span>📈 Indeks Utama Dunia</span>
-              {category === 'index' && <span>✓</span>}
-            </button>
-            <button
-              onClick={() => setCategory('stock')}
-              className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                category === 'stock' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-              }`}
-            >
-              <span>🏢 Saham Global & Wall St</span>
-              {category === 'stock' && <span>✓</span>}
-            </button>
-            <button
-              onClick={() => setCategory('commodity')}
-              className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                category === 'commodity' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-              }`}
-            >
-              <span>🪙 Komoditas & Kripto</span>
-              {category === 'commodity' && <span>✓</span>}
-            </button>
-            <button
-              onClick={() => setCategory('forex')}
-              className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                category === 'forex' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-              }`}
-            >
-              <span>💵 Valas (USD/IDR, dll)</span>
-              {category === 'forex' && <span>✓</span>}
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Smooth Marquee Track: Running Kesamping with Max Width */}
+      {/* Smooth Marquee Track: Running Full Width Kesamping */}
       <div className="overflow-hidden relative flex-1 min-w-0">
         <div
           className={`global-ticker-horizontal-track speed-${speed} ${isPaused ? 'paused' : ''}`}
-          style={{ animationDuration: `${globalTickerDuration}s` }}
         >
           {[...filteredAssets, ...filteredAssets].map((asset, idx) => {
             const isUp = asset.changePercent >= 0;
@@ -209,12 +164,12 @@ export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
         </div>
       </div>
 
-      {/* Right Controls: Refresh & Pause */}
-      <div className="flex items-center gap-1.5 flex-none pr-1 pl-2 border-l border-[#e5ddd0] dark:border-[#26363d]">
+      {/* Right Minimal Controls: Refresh & Pause */}
+      <div className="flex items-center gap-1 flex-none pr-1 pl-1.5 border-l border-[#e5ddd0] dark:border-[#26363d]">
         <button
           onClick={fetchGlobalQuotes}
           disabled={isRefreshing}
-          className={`w-6 h-6 rounded-md hover:bg-[#efe9dd] dark:hover:bg-[#1a2a30] text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center justify-center text-xs cursor-pointer transition-colors ${
+          className={`w-5 h-5 rounded hover:bg-[#efe9dd] dark:hover:bg-[#1a2a30] text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center justify-center text-[10px] cursor-pointer transition-colors ${
             isRefreshing ? 'animate-spin' : ''
           }`}
           title="Perbarui Harga Bursa Dunia Realtime"
@@ -223,7 +178,7 @@ export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
         </button>
         <button
           onClick={togglePause}
-          className="w-6 h-6 rounded-md hover:bg-[#efe9dd] dark:hover:bg-[#1a2a30] text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center justify-center text-xs cursor-pointer font-bold transition-colors"
+          className="w-5 h-5 rounded hover:bg-[#efe9dd] dark:hover:bg-[#1a2a30] text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center justify-center text-[10px] cursor-pointer font-bold transition-colors"
           title={isPaused ? 'Lanjutkan Ticker Bursa Dunia' : 'Jeda Ticker Bursa Dunia'}
           aria-label={isPaused ? 'Play Global Ticker' : 'Pause Global Ticker'}
         >

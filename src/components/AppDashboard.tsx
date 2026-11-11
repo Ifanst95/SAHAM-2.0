@@ -19,11 +19,9 @@ import { WatchlistView } from './dashboard/WatchlistView.tsx';
 import { FaqHelpView } from './dashboard/FaqHelpView.tsx';
 import { TutorialVideosView } from './dashboard/TutorialVideosView.tsx';
 import { CommandPalette } from './dashboard/CommandPalette.tsx';
-import { AccountModal } from './dashboard/AccountModal.tsx';
 import { GlobalVerticalTicker } from './dashboard/GlobalVerticalTicker.tsx';
 import { GlobalHorizontalTicker } from './dashboard/GlobalHorizontalTicker.tsx';
 import { LiveBeiCandlestickChart } from './dashboard/LiveBeiCandlestickChart.tsx';
-import { AdminCMS } from './AdminCMS.tsx';
 
 // Standard BEI Index Constituents for Criteria-based Ticker
 const LQ45_TICKERS = new Set([
@@ -135,7 +133,6 @@ interface AppDashboardProps {
   onAddJournal: (entry: Partial<JournalEntry>) => void;
   onBackToLanding: () => void;
   onNavigateToPlans?: () => void;
-  onLogout?: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onRefreshData?: () => void;
@@ -159,7 +156,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   onAddJournal,
   onBackToLanding,
   onNavigateToPlans = () => {},
-  onLogout = () => {},
   theme,
   toggleTheme,
   onRefreshData = () => {},
@@ -173,11 +169,8 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
 
   // Modals
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
-  const [accountModalOpen, setAccountModalOpen] = useState<boolean>(false);
-  const [adminCmsOpen, setAdminCmsOpen] = useState<boolean>(false);
   const [termsModalOpen, setTermsModalOpen] = useState<boolean>(false);
   const [videoModalOpen, setVideoModalOpen] = useState<boolean>(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState<boolean>(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState<boolean>(false);
   const [quickAddWatchlistOpen, setQuickAddWatchlistOpen] = useState<boolean>(false);
   const [mobileDataMenuOpen, setMobileDataMenuOpen] = useState<boolean>(false);
@@ -187,7 +180,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   const [beiTickerCriterion, setBeiTickerCriterion] = useState<
     'top_gainers' | 'lq45' | 'idx30' | 'kompas100' | 'semua_naik'
   >('top_gainers');
-  const [beiMenuOpen, setBeiMenuOpen] = useState<boolean>(false);
 
   // Horizontal Ticker: Filter stocks according to criteria (Top Gainer, LQ45, IDX30, Kompas100, Semua Naik)
   const displayedBeiStocks = useMemo(() => {
@@ -227,12 +219,16 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
     }
   }, [stocks, beiTickerCriterion]);
 
-  // Dynamic slow pacing for Indonesian Stock Ticker: ensures each stock takes ~10-14 seconds to glide by
+  // Dynamic slow pacing for Indonesian Stock Ticker: ensures each stock takes ample time to glide by
   const beiTickerDuration = useMemo(() => {
     const count = displayedBeiStocks.length || 45;
-    const secsPerItem = tickerSpeed === 'ultraslow' ? 14 : tickerSpeed === 'slow' ? 9 : 6;
-    return Math.max(count * secsPerItem, 360);
-  }, [displayedBeiStocks.length, tickerSpeed]);
+    // For 'semua_naik', we apply extra calm, relaxed pacing so the large list of stocks doesn't rush past
+    const isSemuaNaik = beiTickerCriterion === 'semua_naik';
+    const secsPerItem = isSemuaNaik
+      ? (tickerSpeed === 'ultraslow' ? 18 : tickerSpeed === 'slow' ? 13 : 8.5)
+      : (tickerSpeed === 'ultraslow' ? 14 : tickerSpeed === 'slow' ? 9 : 6);
+    return Math.max(count * secsPerItem, isSemuaNaik ? 600 : 360);
+  }, [displayedBeiStocks.length, tickerSpeed, beiTickerCriterion]);
 
   // Screener Filters & Pilihan Masuk (Matching Screenshot 1)
   const [sessionType, setSessionType] = useState<'Penutupan' | 'Sesi 1 (12:00)'>('Penutupan');
@@ -306,23 +302,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         .catch(() => {});
     }
   }, [selectedTicker]);
-
-  // Close dropdowns on outer click
-
-  const moreMenuRef = useRef<HTMLDivElement>(null);
-  const beiMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
-        setMoreMenuOpen(false);
-      }
-      if (beiMenuRef.current && !beiMenuRef.current.contains(e.target as Node)) {
-        setBeiMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Ctrl+K key listener
   useEffect(() => {
@@ -442,9 +421,8 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   // Filtered Signals according to all criteria
   const filteredSignals = useMemo(() => {
     return signals.filter((sig) => {
-      // Session filter
+      // Session filter (Sesi 1 shows morning-only signals; Penutupan shows all full-day snapshot)
       if (sessionType.startsWith('Sesi 1') && sig.session !== 'Sesi 1') return false;
-      if (sessionType.startsWith('Penutupan') && sig.session !== 'Penutupan') return false;
 
       // Stage / Tahap Masuk filter
       if (stageTab === '01' && sig.type !== 'pullback') return false;
@@ -580,13 +558,15 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           {/* Logo & Brand + Minimize Menu Toggle */}
           <div className="flex items-center justify-between pb-3 border-b border-[#e5ddd0] dark:border-[#26363d]">
             <a
-              href="/"
+              href="#"
               onClick={(e) => {
                 e.preventDefault();
-                onBackToLanding();
+                setTopMode('overview');
+                setSidebarMenu('signals');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="flex items-center gap-2.5 cursor-pointer overflow-hidden"
-              title="Penyembuh Luka · Beranda"
+              title="Penyembuh Luka · Dashboard Utama"
             >
               <div className="w-8 h-8 rounded-lg bg-[#17242a] dark:bg-[#f3eee4] text-[#f6f2ea] dark:text-[#17242a] flex items-center justify-center font-bold text-sm shadow-xs flex-none">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
@@ -863,20 +843,19 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           </div>
         </div>
 
-        {/* Sidebar Footer: Account Info & Theme */}
+        {/* Sidebar Footer: App Info & Theme */}
         <div className="pt-3 border-t border-[#e5ddd0] dark:border-[#26363d] flex items-center justify-between">
           <div
-            onClick={() => setAccountModalOpen(true)}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-80 min-w-0"
-            title="Pengaturan Akun"
+            className="flex items-center gap-2 min-w-0"
+            title="Penyembuh Luka · Screener Saham BEI"
           >
             <div className="w-7 h-7 rounded-full bg-[#1d7a5c] text-white flex items-center justify-center font-bold text-xs flex-none">
-              {user?.email?.slice(0, 1).toUpperCase() || 'U'}
+              PL
             </div>
             {!sidebarCollapsed && (
               <div className="truncate">
-                <b className="block text-xs truncate leading-tight">{user?.email || 'ifan@demo.com'}</b>
-                <span className="text-[10px] text-[#1d7a5c] font-semibold block leading-tight">Akun Aktif</span>
+                <b className="block text-xs truncate leading-tight">Penyembuh Luka</b>
+                <span className="text-[10px] text-[#1d7a5c] font-semibold block leading-tight">Akses Penuh Aktif</span>
               </div>
             )}
           </div>
@@ -955,20 +934,13 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               </button>
             </div>
 
-            {/* Right Menu Links: Langganan, Akun, S&K, Video tutorial, ···, Theme */}
+            {/* Right Menu Links: Langganan, S&K, Video tutorial, Theme */}
             <div className="flex items-center gap-4 text-xs font-semibold text-[#56625f] dark:text-[#a9b3ad]">
               <button
                 onClick={onNavigateToPlans}
                 className="hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer transition-colors hidden sm:inline"
               >
                 Langganan
-              </button>
-
-              <button
-                onClick={() => setAccountModalOpen(true)}
-                className="hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer transition-colors"
-              >
-                Akun
               </button>
 
               <button
@@ -988,86 +960,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 Video tutorial
               </button>
 
-              {/* Three dots '···' dropdown */}
-              <div className="relative" ref={moreMenuRef}>
-                <button
-                  onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                  className="w-7 h-7 rounded-lg border border-[#d6ccbb] dark:border-[#304349] flex items-center justify-center font-bold text-xs hover:bg-[#efe9dd] dark:hover:bg-[#1a2a30] cursor-pointer"
-                  title="Menu Lainnya"
-                >
-                  ···
-                </button>
-
-                {moreMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-52 rounded-2xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-xl py-2 z-50 text-xs font-medium space-y-1">
-                    <button
-                      onClick={() => {
-                        setAdminCmsOpen(true);
-                        setMoreMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center gap-2 cursor-pointer font-bold text-[#1d7a5c]"
-                    >
-                      <span>⚙</span> CMS Admin Data Pasar
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        onToggleAutoUpdate();
-                        setMoreMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center justify-between cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${isAutoUpdating ? 'bg-[#1d7a5c]' : 'bg-[#80887f]'}`}></span>
-                        <span>Auto-Update Pasar</span>
-                      </span>
-                      <span className="text-[10px] text-[#80887f] font-mono">{isAutoUpdating ? 'ON' : 'OFF'}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        onTriggerTick();
-                        setMoreMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center gap-2 cursor-pointer"
-                    >
-                      <span>↻</span> Update Tick Pasar Sekarang
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setTermsModalOpen(true);
-                        setMoreMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center gap-2 cursor-pointer sm:hidden"
-                    >
-                      <span>📄</span> Syarat &amp; Ketentuan (S&amp;K)
-                    </button>
-
-                    <div className="border-t border-[#e5ddd0] dark:border-[#26363d] my-1"></div>
-
-                    <a
-                      href="https://wa.me/6281234567890?text=Halo%20Admin%20Penyembuh%20Luka,%20saya%20butuh%20bantuan"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block px-4 py-2 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] text-[#2f679e] cursor-pointer"
-                    >
-                      💬 Hubungi Kami (WhatsApp)
-                    </a>
-
-                    <button
-                      onClick={() => {
-                        setMoreMenuOpen(false);
-                        onLogout();
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-[#c4554a]/10 text-[#c4554a] cursor-pointer font-bold"
-                    >
-                      ✕ Keluar (Logout)
-                    </button>
-                  </div>
-                )}
-              </div>
-
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
@@ -1079,173 +971,72 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             </div>
           </div>
 
-          {/* RUNNING TICKER BAR: Saham Indonesia (BEI) - Kriteria Top Gainer, LQ45, IDX30, dll */}
-          <div className="flex items-center gap-2 pt-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] relative z-20">
-            {/* Left Tag & Kriteria Filter: Compact dropdown so ticker running is NEVER covered */}
-            <div className="flex items-center gap-1.5 flex-none pl-1 pr-2 border-r border-[#e5ddd0] dark:border-[#26363d] relative" ref={beiMenuRef}>
-              <button
-                onClick={() => setBeiMenuOpen(!beiMenuOpen)}
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-500/30 hover:bg-emerald-500/20 cursor-pointer text-[10px] whitespace-nowrap transition-colors"
-                title="Pilih Kriteria Saham BEI yang Ditampilkan"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>
-                  {beiTickerCriterion === 'top_gainers'
-                    ? '🔥 Top Gainer'
-                    : beiTickerCriterion === 'lq45'
-                    ? '⭐ LQ45'
-                    : beiTickerCriterion === 'idx30'
-                    ? '💎 IDX30'
-                    : beiTickerCriterion === 'kompas100'
-                    ? '🏆 Kompas100'
-                    : '🟢 Semua Naik'}
-                </span>
-                <span className="text-[9px] opacity-70">▾</span>
-              </button>
+          {/* ========================================================
+              TICKER CONTROLS & FILTER STRIP (SIMPLIFIED & NON-COLLIDING)
+             ======================================================== */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] relative z-20">
+            {/* Left: Simplified Criteria Pills (Direct click, no bulky dropdown collisions) */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+              <span className="text-[10px] font-bold text-[#80887f] uppercase mr-1 hidden sm:inline">
+                Filter Ticker:
+              </span>
+              {[
+                { id: 'top_gainers', label: '🔥 Top Gainer', color: 'emerald' },
+                { id: 'lq45', label: '⭐ LQ45', color: 'amber' },
+                { id: 'idx30', label: '💎 IDX30', color: 'blue' },
+                { id: 'kompas100', label: '🏆 Kompas100', color: 'purple' },
+                { id: 'semua_naik', label: '🟢 Semua Naik', color: 'emerald' },
+              ].map((crit) => {
+                const isActive = beiTickerCriterion === crit.id;
+                return (
+                  <button
+                    key={crit.id}
+                    onClick={() => setBeiTickerCriterion(crit.id as any)}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-[#1d7a5c] text-white shadow-xs'
+                        : 'bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4]'
+                    }`}
+                  >
+                    {crit.label}
+                  </button>
+                );
+              })}
 
-              {/* Quick Add To Watchlist Button */}
+              {/* Quick Add To Watchlist */}
               <button
                 onClick={() => setQuickAddWatchlistOpen(true)}
-                className="w-5 h-5 rounded-md border border-[#d6ccbb] dark:border-[#304349] flex items-center justify-center text-xs font-bold text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer"
+                className="w-5 h-5 ml-1 rounded-full border border-[#d6ccbb] dark:border-[#304349] flex items-center justify-center text-xs font-bold text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer"
                 title="Tambah Pantauan Saham"
               >
                 +
               </button>
-
-              {/* Dropdown Menu when clicked */}
-              {beiMenuOpen && (
-                <div
-                  className="absolute left-0 top-full mt-1 w-52 rounded-xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-xl py-1 z-50 text-[10px] font-semibold space-y-0.5"
-                  onClick={() => setBeiMenuOpen(false)}
-                >
-                  <div className="px-3 py-1 text-[9px] font-bold text-[#80887f] uppercase border-b border-[#e5ddd0] dark:border-[#26363d]">
-                    Kriteria Saham BEI Running
-                  </div>
-                  <button
-                    onClick={() => setBeiTickerCriterion('top_gainers')}
-                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                      beiTickerCriterion === 'top_gainers' ? 'text-emerald-600 font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : ''
-                    }`}
-                  >
-                    <span>🔥 Top Gainer (Kenaikan Tertinggi)</span>
-                    {beiTickerCriterion === 'top_gainers' && <span>✓</span>}
-                  </button>
-                  <button
-                    onClick={() => setBeiTickerCriterion('lq45')}
-                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                      beiTickerCriterion === 'lq45' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-950/30' : ''
-                    }`}
-                  >
-                    <span>⭐ LQ45 (45 Saham Paling Likuid)</span>
-                    {beiTickerCriterion === 'lq45' && <span>✓</span>}
-                  </button>
-                  <button
-                    onClick={() => setBeiTickerCriterion('idx30')}
-                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                      beiTickerCriterion === 'idx30' ? 'text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-950/30' : ''
-                    }`}
-                  >
-                    <span>💎 IDX30 (30 Saham Bluechip)</span>
-                    {beiTickerCriterion === 'idx30' && <span>✓</span>}
-                  </button>
-                  <button
-                    onClick={() => setBeiTickerCriterion('kompas100')}
-                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                      beiTickerCriterion === 'kompas100' ? 'text-purple-600 font-bold bg-purple-50/50 dark:bg-purple-950/30' : ''
-                    }`}
-                  >
-                    <span>🏆 Kompas100 (100 Saham Likuid)</span>
-                    {beiTickerCriterion === 'kompas100' && <span>✓</span>}
-                  </button>
-                  <button
-                    onClick={() => setBeiTickerCriterion('semua_naik')}
-                    className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-[#efe9dd] dark:hover:bg-[#121c20] cursor-pointer ${
-                      beiTickerCriterion === 'semua_naik' ? 'text-emerald-600 font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : ''
-                    }`}
-                  >
-                    <span>🟢 Semua Naik (900+ Saham BEI)</span>
-                    {beiTickerCriterion === 'semua_naik' && <span>✓</span>}
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Smooth Marquee Track: Running Kesamping with Max Width */}
-            <div className="overflow-hidden relative flex-1 min-w-0">
+            {/* Right: Live Sync Status & Ticker Controls */}
+            <div className="flex items-center gap-2 flex-none">
+              {/* Realtime Live Sync Badge */}
               <div
-                className={`bei-ticker-track speed-${tickerSpeed} ${tickerPaused ? 'paused' : ''}`}
-                style={{ animationDuration: `${beiTickerDuration}s` }}
+                className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold text-[10px] border border-emerald-500/30"
+                title="Semua data pasar terhubung otomatis secara real-time dari BEI, KSEI dan OJK"
               >
-                {[...displayedBeiStocks, ...displayedBeiStocks].map((stk, idx) => {
-                  const isLq45 = LQ45_TICKERS.has(stk.ticker.toUpperCase());
-                  const isIdx30 = IDX30_TICKERS.has(stk.ticker.toUpperCase());
-                  const isTopGain = stk.changePercent >= 3.0;
-
-                  return (
-                    <div
-                      key={`${stk.ticker}-${idx}`}
-                      onClick={() => {
-                        setSelectedTicker(stk.ticker);
-                        setTopMode('analysis');
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-colors flex-none mx-0.5 font-bold"
-                      title={`BEI IDX:${stk.ticker} (${stk.name}) · ${isLq45 ? 'Konstituen LQ45 · ' : ''}Harga: ${formatRp(stk.price)} (${stk.changePercent >= 0 ? '+' : ''}${stk.changePercent}%) · Klik untuk Analisis`}
-                    >
-                      <span className="tracking-tight text-[11px] text-[#17242a] dark:text-[#f3eee4]">
-                        {stk.ticker}
-                      </span>
-
-                      {/* Criteria Badges */}
-                      {isLq45 && (
-                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                          LQ45
-                        </span>
-                      )}
-                      {isIdx30 && !isLq45 && (
-                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30">
-                          IDX30
-                        </span>
-                      )}
-                      {isTopGain && (
-                        <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30">
-                          🔥 GAINER
-                        </span>
-                      )}
-
-                      <span className="font-mono text-[11px] text-[#56625f] dark:text-[#a9b3ad]">
-                        {formatRp(stk.price)}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-1 py-0.2 rounded flex items-center gap-0.5 ${
-                          stk.changePercent >= 0
-                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40'
-                            : 'text-rose-600 dark:text-rose-400 bg-rose-100/60 dark:bg-rose-900/40'
-                        }`}
-                      >
-                        <span>{stk.changePercent >= 0 ? '▲' : '▼'}</span>
-                        <span>{stk.changePercent >= 0 ? '+' : ''}{stk.changePercent}%</span>
-                      </span>
-                    </div>
-                  );
-                })}
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Real-Time: BEI • KSEI • OJK</span>
               </div>
-            </div>
 
-            {/* Controls: Stock Count, Speed Selector, Toggle Global Ticker, Play/Pause */}
-            <div className="flex items-center gap-1.5 flex-none pr-1 pl-2 border-l border-[#e5ddd0] dark:border-[#26363d]">
-              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 hidden lg:inline font-mono font-bold">
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-bold hidden lg:inline">
                 {displayedBeiStocks.length} Saham
               </span>
 
-              {/* Speed Selector Button */}
+              {/* Speed Selector */}
               <button
                 onClick={() => {
                   setTickerSpeed((prev) => (prev === 'ultraslow' ? 'slow' : prev === 'slow' ? 'normal' : 'ultraslow'));
                 }}
-                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer flex items-center gap-0.5"
-                title="Atur Kecepatan Ticker (Sangat Lambat / Lambat Santai / Normal)"
+                className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4] cursor-pointer"
+                title="Atur Kecepatan Ticker"
               >
-                <span>{tickerSpeed === 'ultraslow' ? '🐌 Sangat Lambat' : tickerSpeed === 'slow' ? '🐢 Lambat Santai' : '🚶 Normal'}</span>
+                <span>{tickerSpeed === 'ultraslow' ? '🐌 Lambat' : tickerSpeed === 'slow' ? '🐢 Santai' : '🚶 Normal'}</span>
               </button>
 
               {/* Toggle Global Ticker */}
@@ -1253,13 +1044,12 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 onClick={() => setShowGlobalTicker(!showGlobalTicker)}
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                   showGlobalTicker
-                    ? 'bg-blue-600 text-white shadow-xs ring-1 ring-blue-500'
+                    ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[#efe9dd] dark:bg-[#1a2a30] text-[#56625f] dark:text-[#a9b3ad] hover:text-[#17242a] dark:hover:text-[#f3eee4]'
                 }`}
-                title="Tampilkan / Sembunyikan Ticker Saham Seluruh Dunia di bawah Ticker BEI"
+                title="Tampilkan / Sembunyikan Ticker Saham Seluruh Dunia"
               >
-                <span>🌐</span>
-                <span className="hidden sm:inline">Bursa Dunia</span>
+                <span>🌐 Bursa Dunia</span>
               </button>
 
               {/* Play/Pause Control */}
@@ -1274,7 +1064,70 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             </div>
           </div>
 
-          {/* ROW 3: TICKER SAHAM SELURUH DUNIA (BURSA DUNIA) - PINDAH KE BAWAH TICKER BEI & RUNNING KESAMPING */}
+          {/* ========================================================
+              FULL-WIDTH EDGE-TO-EDGE RUNNING TICKER (PANJANG 1 HALAMAN KESAMPING)
+             ======================================================== */}
+          <div className="w-full overflow-hidden relative py-1 border-y border-[#e5ddd0]/60 dark:border-[#26363d]/60 bg-[#ffffff]/50 dark:bg-[#121c20]/40">
+            <div
+              className={`bei-ticker-track speed-${tickerSpeed} ${tickerPaused ? 'paused' : ''}`}
+              style={{ animationDuration: `${beiTickerDuration}s` }}
+            >
+              {[...displayedBeiStocks, ...displayedBeiStocks].map((stk, idx) => {
+                const isLq45 = LQ45_TICKERS.has(stk.ticker.toUpperCase());
+                const isIdx30 = IDX30_TICKERS.has(stk.ticker.toUpperCase());
+                const isTopGain = stk.changePercent >= 3.0;
+
+                return (
+                  <div
+                    key={`${stk.ticker}-${idx}`}
+                    onClick={() => {
+                      setSelectedTicker(stk.ticker);
+                      setTopMode('analysis');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-colors flex-none mx-0.5 font-bold"
+                    title={`BEI IDX:${stk.ticker} (${stk.name}) · ${isLq45 ? 'Konstituen LQ45 · ' : ''}Harga: ${formatRp(stk.price)} (${stk.changePercent >= 0 ? '+' : ''}${stk.changePercent}%) · Klik untuk Analisis`}
+                  >
+                    <span className="tracking-tight text-[11px] text-[#17242a] dark:text-[#f3eee4]">
+                      {stk.ticker}
+                    </span>
+
+                    {/* Criteria Badges */}
+                    {isLq45 && (
+                      <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                        LQ45
+                      </span>
+                    )}
+                    {isIdx30 && !isLq45 && (
+                      <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30">
+                        IDX30
+                      </span>
+                    )}
+                    {isTopGain && (
+                      <span className="text-[8.5px] px-1 py-0.2 rounded font-black tracking-tight bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30">
+                        🔥 GAINER
+                      </span>
+                    )}
+
+                    <span className="font-mono text-[11px] text-[#56625f] dark:text-[#a9b3ad]">
+                      {formatRp(stk.price)}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-1 py-0.2 rounded flex items-center gap-0.5 ${
+                        stk.changePercent >= 0
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40'
+                          : 'text-rose-600 dark:text-rose-400 bg-rose-100/60 dark:bg-rose-900/40'
+                      }`}
+                    >
+                      <span>{stk.changePercent >= 0 ? '▲' : '▼'}</span>
+                      <span>{stk.changePercent >= 0 ? '+' : ''}{stk.changePercent}%</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ROW 3: TICKER SAHAM SELURUH DUNIA (BURSA DUNIA) - FULL WIDTH */}
           {showGlobalTicker && (
             <GlobalHorizontalTicker
               speed={tickerSpeed}
@@ -1587,22 +1440,23 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Row 2: Filter Controls Bar (Filter & Urutkan, Data Sesi, Level, Lainnya) */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-2xl bg-white dark:bg-[#1a2a30] border border-[#e5ddd0] dark:border-[#26363d] shadow-2xs">
-                <div className="flex flex-wrap items-center gap-3">
+              {/* Filter Sinyal Saham Box (Original Layout) */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#1a2a30] border border-[#e5ddd0] dark:border-[#26363d] shadow-2xs space-y-3.5">
+                {/* Row 1: Filter & urutkan, Data, Level */}
+                <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
                   <button
                     onClick={() => setFilterDrawerOpen(true)}
-                    className="px-3 py-1.5 rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold text-xs bg-[#f6f2ea] dark:bg-[#121c20] hover:bg-[#efe9dd] cursor-pointer flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold bg-[#fbf9f4] dark:bg-[#121c20] hover:bg-[#efe9dd] cursor-pointer flex items-center gap-1.5"
                   >
                     <span>Filter &amp; urutkan</span>
                   </button>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#80887f] font-semibold text-xs">Data</span>
-                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#80887f]">Data</span>
+                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold">
                       <button
                         onClick={() => setSessionType('Sesi 1 (12:00)')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
                           sessionType === 'Sesi 1 (12:00)'
                             ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs'
                             : 'text-[#80887f]'
@@ -1612,7 +1466,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       </button>
                       <button
                         onClick={() => setSessionType('Penutupan')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
                           sessionType === 'Penutupan'
                             ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs'
                             : 'text-[#80887f]'
@@ -1623,14 +1477,14 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#80887f] font-semibold text-xs">Level</span>
-                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#80887f]">Level</span>
+                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold">
                       {(['ATR', 'N-candle 1', 'N-candle 2'] as const).map((lvl) => (
                         <button
                           key={lvl}
                           onClick={() => setLevelType(lvl)}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
                             levelType === lvl
                               ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs'
                               : 'text-[#80887f]'
@@ -1642,250 +1496,259 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Row 3: Tahap Sinyal Tabs (01, 02, 03, Kolestrol, Jendela, Semua, Lainnya) */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 border-b border-[#e5ddd0] dark:border-[#26363d] text-xs font-bold">
-                <button
-                  onClick={() => setStageTab('01')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === '01'
-                      ? 'border-[#c4554a] text-[#c4554a] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span>01 Sinyal baru</span>
-                  <span className="font-normal opacity-80">{stageCounts.c01}</span>
-                </button>
-
-                <button
-                  onClick={() => setStageTab('02')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === '02'
-                      ? 'border-[#a86f1c] text-[#a86f1c] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span>02 Menunggu konfirmasi</span>
-                  <span className="font-normal opacity-80">{stageCounts.c02}</span>
-                </button>
-
-                <button
-                  onClick={() => setStageTab('03')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === '03'
-                      ? 'border-[#1d7a5c] text-[#1d7a5c] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span>03 Terkonfirmasi</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-[#1d7a5c]/10 text-[#1d7a5c]">
-                    {stageCounts.c03}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setStageTab('kolestrol')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === 'kolestrol'
-                      ? 'border-[#c4554a] text-[#c4554a] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#f39a8c]"></span>
-                  <span>Kolestrol Tinggi</span>
-                  <span className="font-normal opacity-80">{stageCounts.kolestrol}</span>
-                </button>
-
-                <button
-                  onClick={() => setStageTab('jendela')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === 'jendela'
-                      ? 'border-[#2f679e] text-[#2f679e] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#2f679e]"></span>
-                  <span>Jendela habis</span>
-                  <span className="font-normal opacity-80">{stageCounts.jendela}</span>
-                </button>
-
-                <button
-                  onClick={() => setStageTab('semua')}
-                  className={`px-3 py-2 rounded-t-xl transition-colors cursor-pointer border-b-2 flex items-center gap-1.5 flex-none ${
-                    stageTab === 'semua'
-                      ? 'border-[#1d7a5c] text-[#1d7a5c] bg-white dark:bg-[#1a2a30]'
-                      : 'border-transparent text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span>Semua saham</span>
-                  <span className="font-normal opacity-80">{stageCounts.semua}</span>
-                </button>
-
-                {/* Dropdown Lainnya positioned as in Screenshot 1 */}
-                <div className="relative flex-none">
+                {/* Row 2: Tahap Sinyal Tabs */}
+                <div className="flex items-center gap-4 overflow-x-auto scrollbar-none text-xs font-bold pt-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60">
                   <button
-                    onClick={() => setOtherStageMenuOpen(!otherStageMenuOpen)}
-                    className="px-2.5 py-2 text-xs font-semibold text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center gap-1 cursor-pointer"
+                    onClick={() => setStageTab('01')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === '01'
+                        ? 'border-b-2 border-[#c4554a] text-[#c4554a]'
+                        : 'text-[#c4554a] hover:opacity-80'
+                    }`}
                   >
-                    <span>Lainnya</span>
-                    <span>˅</span>
+                    <span>01 Sinyal baru</span>
+                    <span className="font-normal text-[#80887f]">{stageCounts.c01}</span>
                   </button>
 
-                  {otherStageMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-lg py-1 z-30 text-xs font-normal">
-                      <button
-                        onClick={() => {
-                          setStageTab('kena_target');
-                          setOtherStageMenuOpen(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center justify-between"
-                      >
-                        <span>Kena Target</span>
-                        <span className="font-bold text-[#1d7a5c]">3</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setStageTab('invalidasi');
-                          setOtherStageMenuOpen(false);
-                        }}
-                        className="w-full px-3 py-1.5 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center justify-between"
-                      >
-                        <span>Invalidasi</span>
-                        <span className="font-bold text-[#c4554a]">8</span>
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => setStageTab('02')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === '02'
+                        ? 'border-b-2 border-[#a86f1c] text-[#a86f1c]'
+                        : 'text-[#a86f1c] hover:opacity-80'
+                    }`}
+                  >
+                    <span>02 Menunggu konfirmasi</span>
+                    <span className="font-normal text-[#80887f]">{stageCounts.c02}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStageTab('03')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === '03'
+                        ? 'border-b-2 border-[#1d7a5c] text-[#1d7a5c]'
+                        : 'text-[#1d7a5c] hover:opacity-80'
+                    }`}
+                  >
+                    <span>03 Terkonfirmasi</span>
+                    <span className="px-1.5 py-0.2 rounded-full bg-[#1d7a5c]/10 text-[#1d7a5c] text-[11px]">
+                      {stageCounts.c03}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setStageTab('kolestrol')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === 'kolestrol'
+                        ? 'border-b-2 border-[#c4554a] text-[#17242a] dark:text-[#f3eee4]'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#f39a8c]"></span>
+                    <span>Kolestrol Tinggi</span>
+                    <span className="font-normal text-[#80887f]">{stageCounts.kolestrol}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStageTab('jendela')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === 'jendela'
+                        ? 'border-b-2 border-[#2f679e] text-[#17242a] dark:text-[#f3eee4]'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#2f679e]"></span>
+                    <span>Jendela habis</span>
+                    <span className="font-normal text-[#80887f]">{stageCounts.jendela}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStageTab('semua')}
+                    className={`py-1.5 transition-colors cursor-pointer flex items-center gap-1.5 flex-none ${
+                      stageTab === 'semua'
+                        ? 'border-b-2 border-[#1d7a5c] text-[#17242a] dark:text-[#f3eee4]'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span>Semua saham</span>
+                    <span className="font-normal text-[#80887f]">{stageCounts.semua}</span>
+                  </button>
+
+                  {/* Dropdown Lainnya */}
+                  <div className="relative flex-none">
+                    <button
+                      onClick={() => setOtherStageMenuOpen(!otherStageMenuOpen)}
+                      className="text-xs font-semibold text-[#80887f] hover:text-[#17242a] dark:hover:text-[#f3eee4] flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Lainnya</span>
+                      <span>˅</span>
+                    </button>
+
+                    {otherStageMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-[#1a2a30] border border-[#d6ccbb] dark:border-[#304349] shadow-lg py-1 z-30 text-xs font-normal">
+                        <button
+                          onClick={() => {
+                            setStageTab('kena_target');
+                            setOtherStageMenuOpen(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center justify-between"
+                        >
+                          <span>Kena Target</span>
+                          <span className="font-bold text-[#1d7a5c]">3</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setStageTab('invalidasi');
+                            setOtherStageMenuOpen(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-left hover:bg-[#efe9dd] dark:hover:bg-[#121c20] flex items-center justify-between"
+                        >
+                          <span>Invalidasi</span>
+                          <span className="font-bold text-[#c4554a]">8</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 3: Strategi Pills */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-semibold border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60">
+                  <span className="text-[#80887f] mr-1">Strategi</span>
+                  <button
+                    onClick={() => setStrategyFilter('all')}
+                    className={`px-3 py-1 rounded-full transition-colors cursor-pointer ${
+                      strategyFilter === 'all'
+                        ? 'bg-[#f6f2ea] dark:bg-[#121c20] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    Semua {stageCounts.c03}
+                  </button>
+
+                  <button
+                    onClick={() => setStrategyFilter('pullback')}
+                    className={`px-3 py-1 rounded-full transition-colors cursor-pointer flex items-center gap-1 ${
+                      strategyFilter === 'pullback'
+                        ? 'bg-[#f6f2ea] dark:bg-[#121c20] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="text-[#1d7a5c]">▲</span> Pullback {stageCounts.pullback}
+                  </button>
+
+                  <button
+                    onClick={() => setStrategyFilter('haka')}
+                    className={`px-3 py-1 rounded-full transition-colors cursor-pointer flex items-center gap-1 ${
+                      strategyFilter === 'haka'
+                        ? 'bg-[#f6f2ea] dark:bg-[#121c20] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="text-[#2f679e]">◆</span> HAKA {stageCounts.haka}
+                  </button>
+
+                  <button
+                    onClick={() => setStrategyFilter('haka_momentum')}
+                    className={`px-3 py-1 rounded-full transition-colors cursor-pointer flex items-center gap-1 ${
+                      strategyFilter === 'haka_momentum'
+                        ? 'bg-[#f6f2ea] dark:bg-[#121c20] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="text-[#e3ac52]">●</span> HAKA Momentum {stageCounts.haka_momentum}
+                  </button>
+
+                  <button
+                    onClick={() => setStrategyFilter('momentum')}
+                    className={`px-3 py-1 rounded-full transition-colors cursor-pointer flex items-center gap-1 ${
+                      strategyFilter === 'momentum'
+                        ? 'bg-[#f6f2ea] dark:bg-[#121c20] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
+                        : 'text-[#80887f] hover:text-[#17242a]'
+                    }`}
+                  >
+                    <span className="text-[#2f679e]">○</span> Momentum {stageCounts.momentum}
+                  </button>
+                </div>
+
+                {/* Row 4: Snapshot notice */}
+                <div className="text-xs text-[#80887f] pt-0.5">
+                  Snapshot setelah pasar tutup.
                 </div>
               </div>
 
-              {/* Row 4: Strategi Pills (Matching Screenshot 1) */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-semibold">
-                <span className="text-[#80887f] mr-1">Strategi</span>
-                <button
-                  onClick={() => setStrategyFilter('all')}
-                  className={`px-3 py-1 rounded-xl transition-colors cursor-pointer ${
-                    strategyFilter === 'all'
-                      ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
-                      : 'text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  Semua {stageCounts.c03}
-                </button>
+              {/* Section Header: Stage Title & View Switchers (Below filter box) */}
+              <div className="pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="font-serif text-2xl font-bold">
+                    {stageTab === '03'
+                      ? 'Terkonfirmasi'
+                      : stageTab === '01'
+                      ? 'Sinyal baru'
+                      : stageTab === '02'
+                      ? 'Menunggu konfirmasi'
+                      : stageTab === 'kolestrol'
+                      ? 'Kolestrol Tinggi'
+                      : stageTab === 'jendela'
+                      ? 'Jendela habis'
+                      : stageTab === 'kena_target'
+                      ? 'Kena Target'
+                      : stageTab === 'invalidasi'
+                      ? 'Invalidasi'
+                      : 'Semua Saham'}
+                  </h2>
 
-                <button
-                  onClick={() => setStrategyFilter('pullback')}
-                  className={`px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
-                    strategyFilter === 'pullback'
-                      ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
-                      : 'text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="text-[#1d7a5c]">▲</span> Pullback {stageCounts.pullback}
-                </button>
+                  <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+                    {/* Tampilan: Tabel, Rapat, Kartu */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#80887f]">Tampilan</span>
+                      <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349]">
+                        {(['tabel', 'rapat', 'kartu'] as const).map((fmt) => (
+                          <button
+                            key={fmt}
+                            onClick={() => setViewFormat(fmt)}
+                            className={`px-3 py-1 rounded-lg capitalize transition-colors cursor-pointer ${
+                              viewFormat === fmt
+                                ? 'bg-[#17242a] dark:bg-[#f3eee4] text-white dark:text-[#17242a] shadow-xs'
+                                : 'text-[#80887f]'
+                            }`}
+                          >
+                            {fmt === 'kartu' ? 'Kartu' : fmt === 'tabel' ? 'Tabel' : 'Rapat'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                <button
-                  onClick={() => setStrategyFilter('haka')}
-                  className={`px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
-                    strategyFilter === 'haka'
-                      ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
-                      : 'text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="text-[#2f679e]">◆</span> HAKA {stageCounts.haka}
-                </button>
-
-                <button
-                  onClick={() => setStrategyFilter('haka_momentum')}
-                  className={`px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
-                    strategyFilter === 'haka_momentum'
-                      ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
-                      : 'text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="text-[#e3ac52]">●</span> HAKA Momentum {stageCounts.haka_momentum}
-                </button>
-
-                <button
-                  onClick={() => setStrategyFilter('momentum')}
-                  className={`px-3 py-1 rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
-                    strategyFilter === 'momentum'
-                      ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs border border-[#d6ccbb] dark:border-[#304349] font-bold'
-                      : 'text-[#80887f] hover:text-[#17242a]'
-                  }`}
-                >
-                  <span className="text-[#2f679e]">○</span> Momentum {stageCounts.momentum}
-                </button>
-              </div>
-
-              {/* Row 5: Sub-bar (Snapshot text + Tampilan switcher + Cara keluar) */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2">
-                <span className="text-[#80887f]">Snapshot setelah pasar tutup.</span>
-
-                <div className="flex items-center gap-4">
-                  {/* Tampilan: Tabel, Rapat, Kartu */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#80887f]">Tampilan</span>
-                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold">
-                      {(['tabel', 'rapat', 'kartu'] as const).map((fmt) => (
+                    {/* Cara Keluar: Invalidasi tetap vs Trailing stop */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#80887f]">Cara keluar</span>
+                      <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349]">
                         <button
-                          key={fmt}
-                          onClick={() => setViewFormat(fmt)}
-                          className={`px-3 py-1 rounded-lg capitalize transition-colors cursor-pointer ${
-                            viewFormat === fmt
-                              ? 'bg-white dark:bg-[#1a2a30] text-[#17242a] dark:text-[#f3eee4] shadow-xs'
+                          onClick={() => setExitStrategy('fixed')}
+                          className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                            exitStrategy === 'fixed'
+                              ? 'bg-[#17242a] dark:bg-[#f3eee4] text-white dark:text-[#17242a] shadow-xs'
                               : 'text-[#80887f]'
                           }`}
                         >
-                          {fmt === 'kartu' ? 'Kartu' : fmt === 'tabel' ? 'Tabel' : 'Rapat'}
+                          Invalidasi tetap
                         </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cara Keluar: Invalidasi tetap vs Trailing stop */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#80887f]">Cara keluar</span>
-                    <div className="flex items-center p-0.5 bg-[#efe9dd] dark:bg-[#121c20] rounded-xl border border-[#d6ccbb] dark:border-[#304349] font-bold">
-                      <button
-                        onClick={() => setExitStrategy('fixed')}
-                        className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                          exitStrategy === 'fixed'
-                            ? 'bg-[#17242a] dark:bg-[#f3eee4] text-white dark:text-[#17242a]'
-                            : 'text-[#80887f]'
-                        }`}
-                      >
-                        Invalidasi tetap
-                      </button>
-                      <button
-                        onClick={() => setExitStrategy('trailing')}
-                        className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                          exitStrategy === 'trailing'
-                            ? 'bg-[#17242a] dark:bg-[#f3eee4] text-white dark:text-[#17242a]'
-                            : 'text-[#80887f]'
-                        }`}
-                      >
-                        Trailing stop
-                      </button>
+                        <button
+                          onClick={() => setExitStrategy('trailing')}
+                          className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                            exitStrategy === 'trailing'
+                              ? 'bg-[#17242a] dark:bg-[#f3eee4] text-white dark:text-[#17242a] shadow-xs'
+                              : 'text-[#80887f]'
+                          }`}
+                        >
+                          Trailing stop
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Row 6: Section Header (Terkonfirmasi & Explanation & Pagination) */}
-              <div className="pt-2">
-                <h2 className="font-serif text-xl font-bold">
-                  {stageTab === '03'
-                    ? 'Terkonfirmasi'
-                    : stageTab === '01'
-                    ? 'Sinyal Baru'
-                    : stageTab === '02'
-                    ? 'Menunggu Konfirmasi'
-                    : stageTab === 'kolestrol'
-                    ? 'Kolestrol Tinggi'
-                    : 'Semua Saham'}
-                </h2>
-                <p className="text-xs text-[#56625f] mt-1 max-w-3xl leading-relaxed">
+                <p className="text-xs text-[#56625f] mt-1.5 max-w-3xl leading-relaxed">
                   Konfirmasi baru = lolos di candle terakhir, harga acuan open berikutnya (batal kalau open lewat Target atau Invalidasi, atau terkunci ARA). Sisanya posisi yang sudah masuk dan belum kena Target atau Invalidasi, maksimal 20 hari bursa.
                 </p>
 
@@ -3161,13 +3024,16 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setAccountModalOpen(true)}
+            onClick={() => setTermsModalOpen(true)}
             className="flex flex-col items-center gap-1 cursor-pointer text-[#80887f]"
           >
-            <div className="w-5 h-5 rounded-full bg-[#1d7a5c] text-white flex items-center justify-center text-[9px]">
-              {user?.email?.slice(0, 1).toUpperCase() || 'U'}
-            </div>
-            <span>Akun</span>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            <span>S&amp;K</span>
           </button>
         </nav>
       </div>
@@ -3477,30 +3343,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         }}
       />
 
-      {/* 6. ACCOUNT MODAL */}
-      <AccountModal
-        isOpen={accountModalOpen}
-        onClose={() => setAccountModalOpen(false)}
-        user={user}
-        onLogout={onLogout}
-        onNavigateToPlans={onNavigateToPlans}
-      />
-
-      {/* 7. ADMIN CMS MODAL */}
-      {adminCmsOpen && (
-        <AdminCMS
-          stocks={stocks}
-          signals={signals}
-          plans={plans}
-          videos={videos}
-          faq={faq}
-          users={users}
-          marketStatus={marketStatus}
-          onTriggerTick={onTriggerTick}
-          onRefreshData={onRefreshData}
-          onClose={() => setAdminCmsOpen(false)}
-        />
-      )}
     </div>
   );
 };

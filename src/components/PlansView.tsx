@@ -4,14 +4,12 @@ import { PlanData, UserData } from '../types.ts';
 interface PlansViewProps {
   user: UserData | null;
   plans: Record<string, PlanData>;
-  onOpenAuth: (mode: 'daftar' | 'masuk') => void;
   onNavigateToApp: () => void;
 }
 
 export const PlansView: React.FC<PlansViewProps> = ({
   user,
   plans,
-  onOpenAuth,
   onNavigateToApp,
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<string>('bulanan');
@@ -45,39 +43,25 @@ export const PlansView: React.FC<PlansViewProps> = ({
         </div>
 
         {/* User Status Bar */}
-        {user ? (
-          <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] shadow-xs flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-full bg-[var(--up-soft)] text-[var(--up)] flex items-center justify-center font-bold text-sm">
-                ✓
+        <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--line)] shadow-xs flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-[var(--up-soft)] text-[var(--up)] flex items-center justify-center font-bold text-sm">
+              ✓
+            </span>
+            <div>
+              <b className="text-sm text-[var(--ink)] block">Akses Screener Saham BEI</b>
+              <span className="text-xs text-[var(--up)] font-semibold">
+                Status: Langganan Penuh Aktif
               </span>
-              <div>
-                <b className="text-sm text-[var(--ink)] block">Akun: {user.email}</b>
-                <span className="text-xs text-[var(--up)] font-semibold">
-                  Status: Langganan Aktif hingga {user.subscriptionExpires || '2028'}
-                </span>
-              </div>
             </div>
-            <button
-              onClick={onNavigateToApp}
-              className="px-4 py-2 rounded-xl bg-[var(--up)] text-white font-bold text-xs hover:opacity-90 transition-opacity"
-            >
-              Masuk ke Screener →
-            </button>
           </div>
-        ) : (
-          <div className="p-4 rounded-2xl bg-[var(--bg2)] border border-[var(--line)] text-center mb-8">
-            <p className="text-xs text-[var(--muted)] mb-2">
-              Belum masuk dengan email? Masuk dulu untuk mengaktifkan langganan ke akun kamu.
-            </p>
-            <button
-              onClick={() => onOpenAuth('daftar')}
-              className="px-4 py-1.5 rounded-xl bg-[var(--btn)] text-[var(--btn-fg)] font-bold text-xs"
-            >
-              Daftar / Masuk dengan Email
-            </button>
-          </div>
-        )}
+          <button
+            onClick={onNavigateToApp}
+            className="px-4 py-2 rounded-xl bg-[var(--up)] text-white font-bold text-xs hover:opacity-90 transition-opacity"
+          >
+            Masuk ke Screener →
+          </button>
+        </div>
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { VideoData } from '../../types.ts';
+import { TutorialVideoModal } from '../TutorialVideoModal.tsx';
 
 interface TutorialVideosViewProps {
   videos: VideoData[];
@@ -7,7 +8,19 @@ interface TutorialVideosViewProps {
 
 export const TutorialVideosView: React.FC<TutorialVideosViewProps> = ({ videos }) => {
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(videos[0] || null);
-  const [vbigOpen, setVbigOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalInitialVideo, setModalInitialVideo] = useState<VideoData | null>(null);
+
+  const handlePlayFull = () => {
+    setModalInitialVideo(null);
+    setModalOpen(true);
+  };
+
+  const handlePlayModule = (vid: VideoData) => {
+    setSelectedVideo(vid);
+    setModalInitialVideo(vid);
+    setModalOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -21,7 +34,7 @@ export const TutorialVideosView: React.FC<TutorialVideosViewProps> = ({ videos }
         </div>
 
         <button
-          onClick={() => setVbigOpen(true)}
+          onClick={handlePlayFull}
           className="px-4 py-2 rounded-xl bg-[#1d7a5c] text-white font-bold text-xs hover:opacity-90 flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
           ▶ Putar Video Lengkap (6 Menit)
@@ -35,16 +48,24 @@ export const TutorialVideosView: React.FC<TutorialVideosViewProps> = ({ videos }
           <div className="p-4 rounded-2xl bg-white dark:bg-[#1a2a30] border border-[#e5ddd0] dark:border-[#26363d] space-y-3">
             {selectedVideo && (
               <div className="space-y-3">
-                <div className="aspect-video w-full rounded-xl overflow-hidden bg-black relative flex items-center justify-center">
-                  <video
-                    key={selectedVideo.id}
-                    controls
-                    playsInline
-                    poster={selectedVideo.poster}
+                <div
+                  className="aspect-video w-full rounded-xl overflow-hidden bg-black relative flex items-center justify-center cursor-pointer group"
+                  onClick={() => handlePlayModule(selectedVideo)}
+                  title="Klik untuk memutar video tutorial interaktif"
+                >
+                  <img
+                    src={selectedVideo.poster}
+                    alt={selectedVideo.title}
                     className="w-full h-full object-cover"
-                  >
-                    <source src={selectedVideo.videoUrl} type="video/mp4" />
-                  </video>
+                  />
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/45 transition-colors flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-[#1d7a5c] text-white flex items-center justify-center text-2xl shadow-xl group-hover:scale-110 transition-transform">
+                      ▶
+                    </div>
+                    <span className="text-xs text-white/90 font-bold mt-2">
+                      Klik untuk Putar Video Interaktif
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <b className="text-lg font-bold block">{selectedVideo.title}</b>
@@ -70,7 +91,7 @@ export const TutorialVideosView: React.FC<TutorialVideosViewProps> = ({ videos }
             return (
               <div
                 key={vid.id}
-                onClick={() => setSelectedVideo(vid)}
+                onClick={() => handlePlayModule(vid)}
                 className={`p-3 rounded-xl cursor-pointer transition-colors space-y-1 ${
                   isCurrent
                     ? 'bg-[#1d7a5c]/15 border border-[#1d7a5c]/40'
@@ -91,41 +112,12 @@ export const TutorialVideosView: React.FC<TutorialVideosViewProps> = ({ videos }
       </div>
 
       {/* FULL VIDEO POPUP */}
-      {vbigOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs"
-          onClick={() => setVbigOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-3xl p-4 rounded-3xl bg-[#152227] text-white border border-white/20 shadow-2xl space-y-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <b className="font-serif text-lg font-bold">Video Lengkap: Cara Pakai Dari Awal (6 Menit)</b>
-              <button
-                onClick={() => setVbigOpen(false)}
-                className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-xs hover:bg-white/10 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
-              <video
-                controls
-                autoPlay
-                playsInline
-                poster="/video/tutorial-penyembuh-luka.jpg"
-                className="w-full h-full object-cover"
-              >
-                <source src="/media/tutorial.mp4" type="video/mp4" />
-              </video>
-            </div>
-            <p className="text-xs text-[#a9b3ad]">
-              Panduan menyeluruh membaca dashboard: filter sinyal, level grafik candlestick, kalkulator lot, dan cara mencatat ke jurnal.
-            </p>
-          </div>
-        </div>
-      )}
+      <TutorialVideoModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialVideo={modalInitialVideo}
+        videos={videos}
+      />
     </div>
   );
 };
