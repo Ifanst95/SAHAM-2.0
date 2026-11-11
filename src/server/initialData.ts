@@ -1,0 +1,1307 @@
+export interface Candlestick {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface Shareholder {
+  name: string;
+  percentage: number;
+}
+
+export interface InsiderTx {
+  date: string;
+  person: string;
+  role: string;
+  type: 'Beli' | 'Jual';
+  shares: string;
+  price: number;
+}
+
+export interface StockData {
+  id: string;
+  ticker: string;
+  name: string;
+  sector: string;
+  group: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  open: number;
+  high: number;
+  low: number;
+  previousClose: number;
+  volume: number;
+  frequency: number;
+  frequencyAvg20: number;
+  frequencySpike: number;
+  foreignBuy: number;
+  foreignSell: number;
+  netForeign: number;
+  momentumScore: number;
+  momentumRank: 'Pemimpin' | 'Kuat' | 'Sedang' | 'Lemah';
+  vcpStatus: 'Ketat' | 'Sedang' | 'Longgar' | 'Tidak Ada';
+  vcpContraction: string;
+  pivotBreakout: number;
+  invalidation: number;
+  target1: number;
+  target2: number;
+  ma5: number;
+  ma20: number;
+  ma50: number;
+  ma200: number;
+  support: number;
+  resistance: number;
+  trend: 'Uptrend Kuat' | 'Uptrend' | 'Sideway' | 'Downtrend';
+  candles: Candlestick[];
+  shareholders: Shareholder[];
+  insiderTransactions: InsiderTx[];
+}
+
+export interface SignalData {
+  id: string;
+  ticker: string;
+  name: string;
+  type: 'pullback' | 'haka' | 'momentum';
+  session: 'Sesi 1' | 'Penutupan';
+  signalDate: string;
+  status: 'active' | 'hit_target' | 'invalidated' | 'archived';
+  entryPrice: number;
+  breakoutLevel: number;
+  invalidationLevel: number;
+  target1: number;
+  target2: number;
+  riskRewardRatio: string;
+  potentialGain: number;
+  maxRisk: number;
+  recommendedLot: number;
+  notes: string;
+  checklist: {
+    trendMa200: boolean;
+    pullbackHealthy: boolean;
+    vcpTight: boolean;
+    volumeConfirmation: boolean;
+    foreignAccumulation: boolean;
+    frequencySpike: boolean;
+  };
+}
+
+export interface PlanData {
+  id: string;
+  label: string;
+  days: number;
+  price: number;
+  status: 'active' | 'soon';
+  isPopular?: boolean;
+}
+
+export interface VideoData {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  poster: string;
+  videoUrl: string;
+}
+
+export interface FaqData {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface UserData {
+  email: string;
+  role: 'admin' | 'member';
+  subscriptionActive: boolean;
+  subscriptionExpires: string | null;
+  lastLogin: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  userEmail: string;
+  ticker: string;
+  action: 'BUY' | 'SELL';
+  date: string;
+  price: number;
+  lots: number;
+  invalidationPrice: number;
+  targetPrice: number;
+  status: 'OPEN' | 'CLOSED_WIN' | 'CLOSED_LOSS';
+  pnl?: number;
+  notes?: string;
+}
+
+// Generate realistic daily candles ending at current price
+function generateCandles(basePrice: number, trendMultiplier = 1.02): Candlestick[] {
+  const candles: Candlestick[] = [];
+  let current = basePrice * 0.85;
+  const now = new Date('2026-11-10T12:00:00Z');
+
+  for (let i = 40; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 1.4);
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+
+    const changeRatio = (Math.random() - 0.46) * 0.035;
+    const open = Math.round(current);
+    current = current * (1 + changeRatio) * trendMultiplier;
+    const close = i === 0 ? basePrice : Math.round(current);
+    const high = Math.round(Math.max(open, close) * (1 + Math.random() * 0.02));
+    const low = Math.round(Math.min(open, close) * (1 - Math.random() * 0.02));
+    const volume = Math.round(15000 + Math.random() * 65000);
+
+    candles.push({
+      date: d.toISOString().split('T')[0],
+      open,
+      high,
+      low,
+      close,
+      volume,
+    });
+  }
+  return candles;
+}
+
+export const initialStocks: StockData[] = [
+  {
+    id: 'MBSS',
+    ticker: 'MBSS',
+    name: 'Mitrabahtera Segara Sejati Tbk',
+    sector: 'Energy',
+    group: 'Indika',
+    price: 3620,
+    change: 370,
+    changePercent: 11.38,
+    open: 3200,
+    high: 3980,
+    low: 3060,
+    previousClose: 3250,
+    volume: 15159,
+    frequency: 12400,
+    frequencyAvg20: 8200,
+    frequencySpike: 1.51,
+    foreignBuy: 42000000000,
+    foreignSell: 15000000000,
+    netForeign: 27000000000,
+    momentumScore: 96,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-12.0% → -5.5% → -1.8%',
+    pivotBreakout: 3410,
+    invalidation: 2940,
+    target1: 4350,
+    target2: 4660,
+    ma5: 3500,
+    ma20: 3650,
+    ma50: 3353,
+    ma200: 2850,
+    support: 2940,
+    resistance: 3980,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(3620, 1.004),
+    shareholders: [
+      { name: 'PT Indika Energy Tbk', percentage: 51.0 },
+      { name: 'The China Navigation Co. Pte Ltd', percentage: 25.68 },
+      { name: 'Masyarakat', percentage: 23.32 },
+    ],
+    insiderTransactions: [
+      { date: '2026-11-06', person: 'Direksi MBSS', role: 'Direksi', type: 'Beli', shares: '150.000', price: 3450 },
+    ],
+  },
+  {
+    id: 'SSMS',
+    ticker: 'SSMS',
+    name: 'Sawit Sumbermas Sarana Tbk',
+    sector: 'Consumer Non-Cyclical',
+    group: 'CBI Group',
+    price: 960,
+    change: -10,
+    changePercent: -1.03,
+    open: 975,
+    high: 990,
+    low: 955,
+    previousClose: 970,
+    volume: 420000,
+    frequency: 8500,
+    frequencyAvg20: 6200,
+    frequencySpike: 1.37,
+    foreignBuy: 18000000000,
+    foreignSell: 9500000000,
+    netForeign: 8500000000,
+    momentumScore: 91,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-9.5% → -4.2%',
+    pivotBreakout: 975,
+    invalidation: 875,
+    target1: 1190,
+    target2: 1280,
+    ma5: 965,
+    ma20: 940,
+    ma50: 890,
+    ma200: 820,
+    support: 875,
+    resistance: 1000,
+    trend: 'Uptrend',
+    candles: generateCandles(960, 1.002),
+    shareholders: [
+      { name: 'PT Citra Borneo Indah', percentage: 54.0 },
+      { name: 'Publik', percentage: 46.0 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'INOV',
+    ticker: 'INOV',
+    name: 'Inocycle Technology Group Tbk',
+    sector: 'Industrials',
+    group: 'Lainnya',
+    price: 147,
+    change: -9,
+    changePercent: -5.77,
+    open: 156,
+    high: 160,
+    low: 144,
+    previousClose: 156,
+    volume: 850000,
+    frequency: 14200,
+    frequencyAvg20: 7100,
+    frequencySpike: 2.0,
+    foreignBuy: 8500000000,
+    foreignSell: 3200000000,
+    netForeign: 5300000000,
+    momentumScore: 92,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-14% → -6% → -2%',
+    pivotBreakout: 147,
+    invalidation: 125,
+    target1: 182,
+    target2: 210,
+    ma5: 150,
+    ma20: 138,
+    ma50: 125,
+    ma200: 110,
+    support: 125,
+    resistance: 165,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(147, 1.003),
+    shareholders: [
+      { name: 'PT Hilon Indonesia', percentage: 67.24 },
+      { name: 'Publik', percentage: 32.76 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'HBAT',
+    ticker: 'HBAT',
+    name: 'Minahasa Membangun Hebat Tbk',
+    sector: 'Properties & Real Estate',
+    group: 'Lainnya',
+    price: 320,
+    change: 10,
+    changePercent: 3.23,
+    open: 310,
+    high: 328,
+    low: 308,
+    previousClose: 310,
+    volume: 480000,
+    frequency: 9200,
+    frequencyAvg20: 6400,
+    frequencySpike: 1.44,
+    foreignBuy: 5400000000,
+    foreignSell: 2100000000,
+    netForeign: 3300000000,
+    momentumScore: 89,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-8.8% → -3.5%',
+    pivotBreakout: 314,
+    invalidation: 284,
+    target1: 380,
+    target2: 410,
+    ma5: 315,
+    ma20: 300,
+    ma50: 280,
+    ma200: 250,
+    support: 284,
+    resistance: 335,
+    trend: 'Uptrend',
+    candles: generateCandles(320, 1.002),
+    shareholders: [
+      { name: 'PT Pengendali Minahasa', percentage: 60.0 },
+      { name: 'Publik', percentage: 40.0 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'BBCA',
+    ticker: 'BBCA',
+    name: 'Bank Central Asia Tbk',
+    sector: 'Financials',
+    group: 'Djarum',
+    price: 10450,
+    change: 150,
+    changePercent: 1.46,
+    open: 10325,
+    high: 10500,
+    low: 10300,
+    previousClose: 10300,
+    volume: 842100,
+    frequency: 18450,
+    frequencyAvg20: 12400,
+    frequencySpike: 1.49,
+    foreignBuy: 420500000000,
+    foreignSell: 185200000000,
+    netForeign: 235300000000,
+    momentumScore: 95,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-8.5% → -4.2% → -1.6%',
+    pivotBreakout: 10500,
+    invalidation: 10150,
+    target1: 10950,
+    target2: 11400,
+    ma5: 10380,
+    ma20: 10210,
+    ma50: 9980,
+    ma200: 9450,
+    support: 10200,
+    resistance: 10600,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(10450, 1.002),
+    shareholders: [
+      { name: 'PT Dwimuria Investama Andalan', percentage: 54.94 },
+      { name: 'Masyarakat Non-Warkat', percentage: 42.61 },
+      { name: 'Direksi & Komisaris', percentage: 2.45 },
+    ],
+    insiderTransactions: [
+      { date: '2026-11-04', person: 'Jahja Setiaatmadja', role: 'Presiden Direktur', type: 'Beli', shares: '100.000', price: 10250 },
+      { date: '2026-10-18', person: 'Gregory Hendra Lembong', role: 'Wakil Presiden Direktur', type: 'Beli', shares: '50.000', price: 10100 },
+    ],
+  },
+  {
+    id: 'ADRO',
+    ticker: 'ADRO',
+    name: 'Alamtri Resources Indonesia Tbk',
+    sector: 'Energy',
+    group: 'Adaro',
+    price: 3780,
+    change: 90,
+    changePercent: 2.44,
+    open: 3700,
+    high: 3820,
+    low: 3680,
+    previousClose: 3690,
+    volume: 1250400,
+    frequency: 24200,
+    frequencyAvg20: 14100,
+    frequencySpike: 1.72,
+    foreignBuy: 285400000000,
+    foreignSell: 98100000000,
+    netForeign: 187300000000,
+    momentumScore: 92,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-12.4% → -6.1% → -2.4%',
+    pivotBreakout: 3820,
+    invalidation: 3620,
+    target1: 4120,
+    target2: 4400,
+    ma5: 3710,
+    ma20: 3620,
+    ma50: 3450,
+    ma200: 3080,
+    support: 3640,
+    resistance: 3850,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(3780, 1.003),
+    shareholders: [
+      { name: 'PT Adaro Strategic Investments', percentage: 43.91 },
+      { name: 'Garibaldi Thohir', percentage: 6.18 },
+      { name: 'Publik', percentage: 49.91 },
+    ],
+    insiderTransactions: [
+      { date: '2026-10-25', person: 'Garibaldi Thohir', role: 'Presiden Direktur', type: 'Beli', shares: '1.500.000', price: 3650 },
+    ],
+  },
+  {
+    id: 'BREN',
+    ticker: 'BREN',
+    name: 'Barito Renewables Energy Tbk',
+    sector: 'Infrastructure',
+    group: 'Barito Pacific',
+    price: 7250,
+    change: 225,
+    changePercent: 3.20,
+    open: 7050,
+    high: 7300,
+    low: 7000,
+    previousClose: 7025,
+    volume: 985000,
+    frequency: 31200,
+    frequencyAvg20: 17500,
+    frequencySpike: 1.78,
+    foreignBuy: 310500000000,
+    foreignSell: 142000000000,
+    netForeign: 168500000000,
+    momentumScore: 96,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-14.8% → -7.2% → -2.8%',
+    pivotBreakout: 7300,
+    invalidation: 6900,
+    target1: 7900,
+    target2: 8450,
+    ma5: 7120,
+    ma20: 6890,
+    ma50: 6450,
+    ma200: 5800,
+    support: 6950,
+    resistance: 7400,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(7250, 1.004),
+    shareholders: [
+      { name: 'PT Barito Pacific Tbk', percentage: 64.67 },
+      { name: 'Green Era Energy Pte Ltd', percentage: 23.60 },
+      { name: 'Publik', percentage: 11.73 },
+    ],
+    insiderTransactions: [
+      { date: '2026-10-30', person: 'Prajogo Pangestu', role: 'Pengendali', type: 'Beli', shares: '2.000.000', price: 6950 },
+    ],
+  },
+  {
+    id: 'AMMN',
+    ticker: 'AMMN',
+    name: 'Amman Mineral Internasional Tbk',
+    sector: 'Basic Materials',
+    group: 'Salim / Medco',
+    price: 9800,
+    change: 175,
+    changePercent: 1.82,
+    open: 9650,
+    high: 9900,
+    low: 9625,
+    previousClose: 9625,
+    volume: 672000,
+    frequency: 19800,
+    frequencyAvg20: 13200,
+    frequencySpike: 1.50,
+    foreignBuy: 245000000000,
+    foreignSell: 112000000000,
+    netForeign: 133000000000,
+    momentumScore: 94,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-11.2% → -5.4%',
+    pivotBreakout: 9900,
+    invalidation: 9450,
+    target1: 10600,
+    target2: 11200,
+    ma5: 9710,
+    ma20: 9480,
+    ma50: 9150,
+    ma200: 8350,
+    support: 9500,
+    resistance: 10000,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(9800, 1.003),
+    shareholders: [
+      { name: 'PT Sumber Gemilang Mobilindo', percentage: 32.44 },
+      { name: 'PT Medco Daya Abadi Lestari', percentage: 18.99 },
+      { name: 'Publik', percentage: 48.57 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'BRIS',
+    ticker: 'BRIS',
+    name: 'Bank Syariah Indonesia Tbk',
+    sector: 'Financials',
+    group: 'BUMN',
+    price: 3120,
+    change: 80,
+    changePercent: 2.63,
+    open: 3050,
+    high: 3150,
+    low: 3040,
+    previousClose: 3040,
+    volume: 894000,
+    frequency: 16700,
+    frequencyAvg20: 10800,
+    frequencySpike: 1.55,
+    foreignBuy: 142000000000,
+    foreignSell: 52000000000,
+    netForeign: 90000000000,
+    momentumScore: 91,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-9.8% → -4.6% → -1.8%',
+    pivotBreakout: 3150,
+    invalidation: 2980,
+    target1: 3400,
+    target2: 3650,
+    ma5: 3070,
+    ma20: 2990,
+    ma50: 2820,
+    ma200: 2450,
+    support: 3000,
+    resistance: 3200,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(3120, 1.002),
+    shareholders: [
+      { name: 'PT Bank Mandiri (Persero) Tbk', percentage: 51.47 },
+      { name: 'PT Bank Negara Indonesia (Persero) Tbk', percentage: 23.24 },
+      { name: 'PT Bank Rakyat Indonesia (Persero) Tbk', percentage: 15.38 },
+      { name: 'Publik', percentage: 9.91 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'TLKM',
+    ticker: 'TLKM',
+    name: 'Telkom Indonesia Tbk',
+    sector: 'Infrastructure',
+    group: 'BUMN',
+    price: 3080,
+    change: 40,
+    changePercent: 1.32,
+    open: 3050,
+    high: 3100,
+    low: 3040,
+    previousClose: 3040,
+    volume: 1450000,
+    frequency: 14200,
+    frequencyAvg20: 11900,
+    frequencySpike: 1.19,
+    foreignBuy: 185000000000,
+    foreignSell: 115000000000,
+    netForeign: 70000000000,
+    momentumScore: 84,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-8.0% → -3.5%',
+    pivotBreakout: 3110,
+    invalidation: 2980,
+    target1: 3300,
+    target2: 3450,
+    ma5: 3050,
+    ma20: 3010,
+    ma50: 2950,
+    ma200: 3150,
+    support: 3000,
+    resistance: 3150,
+    trend: 'Uptrend',
+    candles: generateCandles(3080, 1.001),
+    shareholders: [
+      { name: 'Negara Republik Indonesia', percentage: 52.09 },
+      { name: 'Publik', percentage: 47.91 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'ASII',
+    ticker: 'ASII',
+    name: 'Astra International Tbk',
+    sector: 'Industrials',
+    group: 'Astra',
+    price: 5225,
+    change: 75,
+    changePercent: 1.46,
+    open: 5175,
+    high: 5250,
+    low: 5150,
+    previousClose: 5150,
+    volume: 720000,
+    frequency: 11500,
+    frequencyAvg20: 9800,
+    frequencySpike: 1.17,
+    foreignBuy: 195000000000,
+    foreignSell: 130000000000,
+    netForeign: 65000000000,
+    momentumScore: 82,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-7.5% → -3.2%',
+    pivotBreakout: 5250,
+    invalidation: 5075,
+    target1: 5500,
+    target2: 5750,
+    ma5: 5180,
+    ma20: 5120,
+    ma50: 5040,
+    ma200: 5100,
+    support: 5100,
+    resistance: 5300,
+    trend: 'Uptrend',
+    candles: generateCandles(5225, 1.001),
+    shareholders: [
+      { name: 'Jardine Cycle & Carriage Ltd', percentage: 50.11 },
+      { name: 'Publik', percentage: 49.89 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'MEDC',
+    ticker: 'MEDC',
+    name: 'Medco Energi Internasional Tbk',
+    sector: 'Energy',
+    group: 'Medco',
+    price: 1360,
+    change: 55,
+    changePercent: 4.21,
+    open: 1315,
+    high: 1375,
+    low: 1310,
+    previousClose: 1305,
+    volume: 1820000,
+    frequency: 28900,
+    frequencyAvg20: 15400,
+    frequencySpike: 1.88,
+    foreignBuy: 165000000000,
+    foreignSell: 72000000000,
+    netForeign: 93000000000,
+    momentumScore: 93,
+    momentumRank: 'Pemimpin',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-13.2% → -6.8% → -2.2%',
+    pivotBreakout: 1375,
+    invalidation: 1290,
+    target1: 1500,
+    target2: 1620,
+    ma5: 1330,
+    ma20: 1285,
+    ma50: 1220,
+    ma200: 1140,
+    support: 1300,
+    resistance: 1400,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(1360, 1.003),
+    shareholders: [
+      { name: 'PT Medco Daya Abadi Lestari', percentage: 51.72 },
+      { name: 'Diamond Bridge Pte Ltd', percentage: 21.46 },
+      { name: 'Publik', percentage: 26.82 },
+    ],
+    insiderTransactions: [
+      { date: '2026-11-02', person: 'Hilmi Panigoro', role: 'Direktur Utama', type: 'Beli', shares: '500.000', price: 1310 },
+    ],
+  },
+  {
+    id: 'ICBP',
+    ticker: 'ICBP',
+    name: 'Indofood CBP Sukses Makmur Tbk',
+    sector: 'Consumer Non-Cyclical',
+    group: 'Salim',
+    price: 12350,
+    change: 150,
+    changePercent: 1.23,
+    open: 12225,
+    high: 12400,
+    low: 12200,
+    previousClose: 12200,
+    volume: 240000,
+    frequency: 6800,
+    frequencyAvg20: 5900,
+    frequencySpike: 1.15,
+    foreignBuy: 112000000000,
+    foreignSell: 68000000000,
+    netForeign: 44000000000,
+    momentumScore: 80,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-6.4% → -2.8%',
+    pivotBreakout: 12400,
+    invalidation: 12050,
+    target1: 12900,
+    target2: 13350,
+    ma5: 12280,
+    ma20: 12150,
+    ma50: 11800,
+    ma200: 11200,
+    support: 12100,
+    resistance: 12500,
+    trend: 'Uptrend',
+    candles: generateCandles(12350, 1.001),
+    shareholders: [
+      { name: 'PT Indofood Sukses Makmur Tbk', percentage: 80.53 },
+      { name: 'Publik', percentage: 19.47 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'PGAS',
+    ticker: 'PGAS',
+    name: 'Perusahaan Gas Negara Tbk',
+    sector: 'Energy',
+    group: 'BUMN',
+    price: 1585,
+    change: 35,
+    changePercent: 2.26,
+    open: 1555,
+    high: 1595,
+    low: 1550,
+    previousClose: 1550,
+    volume: 910000,
+    frequency: 14800,
+    frequencyAvg20: 9900,
+    frequencySpike: 1.49,
+    foreignBuy: 85000000000,
+    foreignSell: 31000000000,
+    netForeign: 54000000000,
+    momentumScore: 89,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-9.2% → -4.1% → -1.5%',
+    pivotBreakout: 1595,
+    invalidation: 1520,
+    target1: 1720,
+    target2: 1840,
+    ma5: 1560,
+    ma20: 1525,
+    ma50: 1460,
+    ma200: 1380,
+    support: 1530,
+    resistance: 1610,
+    trend: 'Uptrend Kuat',
+    candles: generateCandles(1585, 1.002),
+    shareholders: [
+      { name: 'PT Pertamina (Persero)', percentage: 56.96 },
+      { name: 'Publik', percentage: 43.04 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'ANTM',
+    ticker: 'ANTM',
+    name: 'Aneka Tambang Tbk',
+    sector: 'Basic Materials',
+    group: 'MIND ID / BUMN',
+    price: 1620,
+    change: 45,
+    changePercent: 2.86,
+    open: 1580,
+    high: 1635,
+    low: 1575,
+    previousClose: 1575,
+    volume: 1320000,
+    frequency: 21500,
+    frequencyAvg20: 13900,
+    frequencySpike: 1.55,
+    foreignBuy: 125000000000,
+    foreignSell: 58000000000,
+    netForeign: 67000000000,
+    momentumScore: 88,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Ketat',
+    vcpContraction: '-11.0% → -5.2% → -2.0%',
+    pivotBreakout: 1635,
+    invalidation: 1545,
+    target1: 1760,
+    target2: 1890,
+    ma5: 1590,
+    ma20: 1550,
+    ma50: 1490,
+    ma200: 1520,
+    support: 1560,
+    resistance: 1650,
+    trend: 'Uptrend',
+    candles: generateCandles(1620, 1.002),
+    shareholders: [
+      { name: 'PT Mineral Industri Indonesia (MIND ID)', percentage: 65.00 },
+      { name: 'Publik', percentage: 35.00 },
+    ],
+    insiderTransactions: [],
+  },
+  {
+    id: 'PTBA',
+    ticker: 'PTBA',
+    name: 'Bukit Asam Tbk',
+    sector: 'Energy',
+    group: 'MIND ID / BUMN',
+    price: 2840,
+    change: 60,
+    changePercent: 2.16,
+    open: 2790,
+    high: 2860,
+    low: 2780,
+    previousClose: 2780,
+    volume: 580000,
+    frequency: 11200,
+    frequencyAvg20: 8400,
+    frequencySpike: 1.33,
+    foreignBuy: 74000000000,
+    foreignSell: 32000000000,
+    netForeign: 42000000000,
+    momentumScore: 86,
+    momentumRank: 'Kuat',
+    vcpStatus: 'Sedang',
+    vcpContraction: '-8.5% → -3.8%',
+    pivotBreakout: 2860,
+    invalidation: 2730,
+    target1: 3050,
+    target2: 3200,
+    ma5: 2800,
+    ma20: 2760,
+    ma50: 2690,
+    ma200: 2620,
+    support: 2750,
+    resistance: 2880,
+    trend: 'Uptrend',
+    candles: generateCandles(2840, 1.002),
+    shareholders: [
+      { name: 'PT Mineral Industri Indonesia (MIND ID)', percentage: 65.93 },
+      { name: 'Publik', percentage: 34.07 },
+    ],
+    insiderTransactions: [],
+  },
+];
+
+export const initialSignals: SignalData[] = [
+  {
+    id: 'SIG-MBSS-01',
+    ticker: 'MBSS',
+    name: 'Mitrabahtera Segara Sejati Tbk',
+    type: 'momentum',
+    session: 'Penutupan',
+    signalDate: '2026-11-06',
+    status: 'active',
+    entryPrice: 3620,
+    breakoutLevel: 3410,
+    invalidationLevel: 2940,
+    target1: 4350,
+    target2: 4660,
+    riskRewardRatio: '1:2.0',
+    potentialGain: 27.6,
+    maxRisk: 13.8,
+    recommendedLot: 21,
+    notes: 'Konfirmasi baru: lolos 6 Nov · harga acuan: open besok. Batas breakout 3.410, target 4.350.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-SSMS-02',
+    ticker: 'SSMS',
+    name: 'Sawit Sumbermas Sarana Tbk',
+    type: 'momentum',
+    session: 'Penutupan',
+    signalDate: '2026-11-06',
+    status: 'active',
+    entryPrice: 960,
+    breakoutLevel: 975,
+    invalidationLevel: 875,
+    target1: 1190,
+    target2: 1280,
+    riskRewardRatio: '1:2.4',
+    potentialGain: 24.0,
+    maxRisk: 10.3,
+    recommendedLot: 100,
+    notes: 'Breakout hari ini, momentum score positif +8,6%.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-INOV-03',
+    ticker: 'INOV',
+    name: 'Inocycle Technology Group Tbk',
+    type: 'momentum',
+    session: 'Penutupan',
+    signalDate: '2026-11-06',
+    status: 'active',
+    entryPrice: 147,
+    breakoutLevel: 147,
+    invalidationLevel: 125,
+    target1: 182,
+    target2: 210,
+    riskRewardRatio: '1:1.6',
+    potentialGain: 23.8,
+    maxRisk: 15.0,
+    recommendedLot: 304,
+    notes: 'Breakout hari ini, momentum positif +24%, likuiditas terjaga.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-HBAT-04',
+    ticker: 'HBAT',
+    name: 'Minahasa Membangun Hebat Tbk',
+    type: 'momentum',
+    session: 'Penutupan',
+    signalDate: '2026-11-06',
+    status: 'active',
+    entryPrice: 320,
+    breakoutLevel: 314,
+    invalidationLevel: 284,
+    target1: 380,
+    target2: 410,
+    riskRewardRatio: '1:1.8',
+    potentialGain: 18.7,
+    maxRisk: 11.2,
+    recommendedLot: 145,
+    notes: 'Breakout terkonfirmasi, risk to invalidation terukur.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-BREN-01',
+    ticker: 'BREN',
+    name: 'Barito Renewables Energy Tbk',
+    type: 'momentum',
+    session: 'Penutupan',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 7250,
+    breakoutLevel: 7300,
+    invalidationLevel: 6900,
+    target1: 7900,
+    target2: 8450,
+    riskRewardRatio: '1:2.8',
+    potentialGain: 16.5,
+    maxRisk: 4.8,
+    recommendedLot: 18,
+    notes: 'Volume konfirmasi tembus 1.7x rata-rata 20 hari. VCP 3 tahapan kontraksi sempurna, akumulasi asing konsisten 3 hari berturut-turut.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-ADRO-02',
+    ticker: 'ADRO',
+    name: 'Alamtri Resources Indonesia Tbk',
+    type: 'momentum',
+    session: 'Sesi 1',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 3780,
+    breakoutLevel: 3820,
+    invalidationLevel: 3620,
+    target1: 4120,
+    target2: 4400,
+    riskRewardRatio: '1:2.5',
+    potentialGain: 16.4,
+    maxRisk: 4.2,
+    recommendedLot: 32,
+    notes: 'Lonjakan frekuensi transaksi 1.72x. Candle bullish engulfing di atas MA20 dengan aliran dana asing masuk Rp187 M.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-MEDC-03',
+    ticker: 'MEDC',
+    name: 'Medco Energi Internasional Tbk',
+    type: 'haka',
+    session: 'Sesi 1',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 1360,
+    breakoutLevel: 1375,
+    invalidationLevel: 1290,
+    target1: 1500,
+    target2: 1620,
+    riskRewardRatio: '1:2.4',
+    potentialGain: 19.1,
+    maxRisk: 5.1,
+    recommendedLot: 75,
+    notes: 'Muncul candle bullish marubozu setelah pullback 3 hari. Menunggu break resisten 1375 untuk konfirmasi akhir.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+  {
+    id: 'SIG-BBCA-04',
+    ticker: 'BBCA',
+    name: 'Bank Central Asia Tbk',
+    type: 'haka',
+    session: 'Penutupan',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 10450,
+    breakoutLevel: 10500,
+    invalidationLevel: 10150,
+    target1: 10950,
+    target2: 11400,
+    riskRewardRatio: '1:2.2',
+    potentialGain: 9.1,
+    maxRisk: 2.9,
+    recommendedLot: 15,
+    notes: 'Pullback sehat bertahan di MA20 (10210). Rebound dengan volume tebal. Target breakout all time high.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: false,
+    },
+  },
+  {
+    id: 'SIG-BRIS-05',
+    ticker: 'BRIS',
+    name: 'Bank Syariah Indonesia Tbk',
+    type: 'pullback',
+    session: 'Penutupan',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 3120,
+    breakoutLevel: 3150,
+    invalidationLevel: 2980,
+    target1: 3400,
+    target2: 3650,
+    riskRewardRatio: '1:2.1',
+    potentialGain: 17.0,
+    maxRisk: 4.5,
+    recommendedLot: 35,
+    notes: 'Saham uptrend kuat sedang pullback mendekati support dinamis MA20. Masuk daftar pantau, tunggu konfirmasi candle pembalikan.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: true,
+      volumeConfirmation: false,
+      foreignAccumulation: true,
+      frequencySpike: false,
+    },
+  },
+  {
+    id: 'SIG-ANTM-06',
+    ticker: 'ANTM',
+    name: 'Aneka Tambang Tbk',
+    type: 'pullback',
+    session: 'Sesi 1',
+    signalDate: '2026-11-10',
+    status: 'active',
+    entryPrice: 1620,
+    breakoutLevel: 1635,
+    invalidationLevel: 1545,
+    target1: 1760,
+    target2: 1890,
+    riskRewardRatio: '1:2.0',
+    potentialGain: 16.7,
+    maxRisk: 4.6,
+    recommendedLot: 65,
+    notes: 'Koreksi sehat di area support 1580. Momentum score 88. Tunggu trigger buy order.',
+    checklist: {
+      trendMa200: true,
+      pullbackHealthy: true,
+      vcpTight: false,
+      volumeConfirmation: true,
+      foreignAccumulation: true,
+      frequencySpike: true,
+    },
+  },
+];
+
+export const initialPlans: Record<string, PlanData> = {
+  bulanan: {
+    id: 'bulanan',
+    label: '1 bulan',
+    days: 30,
+    price: 50000,
+    status: 'active',
+    isPopular: true,
+  },
+  '3bulan': {
+    id: '3bulan',
+    label: '3 bulan',
+    days: 90,
+    price: 0,
+    status: 'soon',
+  },
+  '6bulan': {
+    id: '6bulan',
+    label: '6 bulan',
+    days: 180,
+    price: 0,
+    status: 'soon',
+  },
+  '12bulan': {
+    id: '12bulan',
+    label: '12 bulan',
+    days: 365,
+    price: 0,
+    status: 'soon',
+  },
+};
+
+export const initialVideos: VideoData[] = [
+  {
+    id: 'mulai',
+    title: 'Mulai: kenali menunya',
+    description: 'Menu utama dan cara mencari saham, menu, atau pertanyaan dari mana saja.',
+    duration: '1 menit 3 detik',
+    poster: '/video/fitur/mulai.jpg',
+    videoUrl: '/media/fitur/mulai.mp4',
+  },
+  {
+    id: 'sinyal',
+    title: 'Membaca sinyal',
+    description: 'Alur sinyal dari awal sampai terkonfirmasi, data Sesi 1 dan Penutupan, dan hasil posisinya.',
+    duration: '56 detik',
+    poster: '/video/fitur/sinyal.jpg',
+    videoUrl: '/media/fitur/sinyal.mp4',
+  },
+  {
+    id: 'grafik',
+    title: 'Halaman saham dan grafik',
+    description: 'Level di grafik, periode, lapisan grafik (MA, S/R, Fibonacci), rencana dan checklist.',
+    duration: '1 menit 29 detik',
+    poster: '/video/fitur/grafik.jpg',
+    videoUrl: '/media/fitur/grafik.mp4',
+  },
+  {
+    id: 'filter',
+    title: 'Filter, urutan dan tampilan',
+    description: 'Menyaring daftar menurut likuiditas, indeks dan momentum, mengurutkan, dan memilih tampilan.',
+    duration: '1 menit 8 detik',
+    poster: '/video/fitur/filter.jpg',
+    videoUrl: '/media/fitur/filter.mp4',
+  },
+  {
+    id: 'kalkulator',
+    title: 'Kalkulator lot dan risiko',
+    description: 'Jumlah lot dari modal, risiko per trade dan batas alokasi.',
+    duration: '46 detik',
+    poster: '/video/fitur/kalkulator.jpg',
+    videoUrl: '/media/fitur/kalkulator.mp4',
+  },
+  {
+    id: 'jurnal',
+    title: 'Jurnal dan Flexing Porto',
+    description: 'Mencatat rencana dan transaksi, melihat statistik, dan membandingkan portofolio.',
+    duration: '1 menit 6 detik',
+    poster: '/video/fitur/jurnal.jpg',
+    videoUrl: '/media/fitur/jurnal.mp4',
+  },
+  {
+    id: 'moneyflow',
+    title: 'Money Flow Tracker',
+    description: 'Aliran dana asing dan semua investor per saham dan per sektor.',
+    duration: '59 detik',
+    poster: '/video/fitur/moneyflow.jpg',
+    videoUrl: '/media/fitur/moneyflow.mp4',
+  },
+  {
+    id: 'datapasar',
+    title: 'Data pasar dan emiten',
+    description: 'Peta saham, rotasi sektor, aliran dana, Frequency Analyzer, pemegang saham dan fundamental.',
+    duration: '1 menit 6 detik',
+    poster: '/video/fitur/datapasar.jpg',
+    videoUrl: '/media/fitur/datapasar.mp4',
+  },
+  {
+    id: 'pantau',
+    title: 'Memantau saham',
+    description: 'Menandai saham dan melihat semuanya di daftar Dipantau.',
+    duration: '28 detik',
+    poster: '/video/fitur/pantau.jpg',
+    videoUrl: '/media/fitur/pantau.mp4',
+  },
+  {
+    id: 'langganan',
+    title: 'Langganan dan pembayaran',
+    description: 'Memilih paket, membayar dengan QRIS, kode khusus akun, dan konfirmasi pembayaran.',
+    duration: '51 detik',
+    poster: '/video/fitur/langganan.jpg',
+    videoUrl: '/media/fitur/langganan.mp4',
+  },
+];
+
+export const initialFaq: FaqData[] = [
+  {
+    id: 'faq-1',
+    question: 'Apakah ini rekomendasi beli atau jual?',
+    answer: 'Bukan. Penyembuh Luka adalah alat bantu analisis: menyaring saham dengan aturan yang sama setiap hari dan menunjukkan levelnya. Keputusan beli, jual dan risikonya tetap di tangan kamu.',
+  },
+  {
+    id: 'faq-2',
+    question: 'Kapan datanya diperbarui?',
+    answer: 'Dua kali setiap hari bursa: setelah Sesi 1 tutup (sekitar pukul 12:00 WIB) dan setelah penutupan. Strip harga di atas dashboard ikut bergerak selama jam bursa, tertunda sekitar 10 menit.',
+  },
+  {
+    id: 'faq-3',
+    question: 'Bagaimana cara masuk dan daftar?',
+    answer: 'Cukup email. Klik Daftar atau Masuk, isi email, lalu masukkan kode 6 digit yang dikirim ke inbox kamu. Tidak ada password. Email yang belum terdaftar otomatis dibuatkan akun.',
+  },
+  {
+    id: 'faq-4',
+    question: 'Bagaimana cara berlangganan dan membayar?',
+    answer: 'Setelah masuk, buka halaman Langganan, pilih paket, lalu bayar dengan QRIS atau transfer bank. Akun aktif setelah pembayaran terkonfirmasi, dan masa aktifnya terlihat di halaman Akun.',
+  },
+  {
+    id: 'faq-5',
+    question: 'Bisa dipakai di beberapa perangkat?',
+    answer: 'Satu akun untuk satu orang, dengan satu sesi aktif. Kalau kamu masuk di perangkat lain, sesi di perangkat sebelumnya ditutup.',
+  },
+  {
+    id: 'faq-6',
+    question: 'Ada panduan cara pakainya?',
+    answer: 'Ada. Video per fitur di bagian Materi belajar di halaman ini, dan setelah masuk tombol Video tutorial selalu ada di menu dashboard, bersama FAQ dan cara pakai.',
+  },
+];
+
+export const initialUsers: UserData[] = [
+  {
+    email: 'admin@penyembuhluka.my.id',
+    role: 'admin',
+    subscriptionActive: true,
+    subscriptionExpires: '2028-12-31',
+    lastLogin: '2026-11-10T12:00:00Z',
+  },
+  {
+    email: 'ifanstw32195@gmail.com',
+    role: 'admin',
+    subscriptionActive: true,
+    subscriptionExpires: '2028-12-31',
+    lastLogin: '2026-11-10T12:00:00Z',
+  },
+  {
+    email: 'member@example.com',
+    role: 'member',
+    subscriptionActive: true,
+    subscriptionExpires: '2027-05-15',
+    lastLogin: '2026-11-09T08:30:00Z',
+  },
+];

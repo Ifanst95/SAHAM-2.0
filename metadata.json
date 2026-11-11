@@ -1,0 +1,6 @@
+{
+  "name": "Penyembuh Luka · Screener Saham BEI",
+  "description": "Screener harian untuk lebih dari 900 saham BEI: saham kuat yang sedang pullback, dari sinyal baru sampai terkonfirmasi, lengkap dengan batas breakout, invalidasi, target dan jumlah lot, serta CMS data pasar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
