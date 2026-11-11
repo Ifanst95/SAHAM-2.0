@@ -1546,20 +1546,24 @@ footer nav a:hover {
   align-items: center;
   width: max-content;
   white-space: nowrap;
-  animation: bei-ticker-marquee 700s linear infinite;
+  animation: bei-ticker-marquee 1800s linear infinite;
   will-change: transform;
 }
 
+.bei-ticker-track.speed-ultraslow {
+  animation-duration: 2600s !important;
+}
+
 .bei-ticker-track.speed-slow {
-  animation-duration: 800s !important;
+  animation-duration: 1800s !important;
 }
 
 .bei-ticker-track.speed-normal {
-  animation-duration: 550s !important;
+  animation-duration: 1200s !important;
 }
 
 .bei-ticker-track.speed-fast {
-  animation-duration: 380s !important;
+  animation-duration: 800s !important;
 }
 
 .bei-ticker-track:hover {
@@ -1585,20 +1589,24 @@ footer nav a:hover {
   align-items: center;
   width: max-content;
   white-space: nowrap;
-  animation: global-ticker-horizontal 650s linear infinite;
+  animation: global-ticker-horizontal 1600s linear infinite;
   will-change: transform;
 }
 
+.global-ticker-horizontal-track.speed-ultraslow {
+  animation-duration: 2400s !important;
+}
+
 .global-ticker-horizontal-track.speed-slow {
-  animation-duration: 750s !important;
+  animation-duration: 1600s !important;
 }
 
 .global-ticker-horizontal-track.speed-normal {
-  animation-duration: 500s !important;
+  animation-duration: 1000s !important;
 }
 
 .global-ticker-horizontal-track.speed-fast {
-  animation-duration: 350s !important;
+  animation-duration: 600s !important;
 }
 
 .global-ticker-horizontal-track:hover {

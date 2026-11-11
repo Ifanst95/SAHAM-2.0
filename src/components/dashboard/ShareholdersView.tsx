@@ -4,9 +4,14 @@ import { StockData } from '../../types.ts';
 interface ShareholdersViewProps {
   stocks: StockData[];
   onSelectStock: (ticker: string) => void;
+  onOpenNetwork?: () => void;
 }
 
-export const ShareholdersView: React.FC<ShareholdersViewProps> = ({ stocks, onSelectStock }) => {
+export const ShareholdersView: React.FC<ShareholdersViewProps> = ({
+  stocks,
+  onSelectStock,
+  onOpenNetwork,
+}) => {
   const [selectedTicker, setSelectedTicker] = useState<string>(stocks[0]?.ticker || 'BBCA');
 
   const stock = stocks.find((s) => s.ticker === selectedTicker) || stocks[0];
@@ -16,7 +21,19 @@ export const ShareholdersView: React.FC<ShareholdersViewProps> = ({ stocks, onSe
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-[#1a2a30] border border-[#e5ddd0] dark:border-[#26363d]">
         <div>
-          <h2 className="font-serif text-2xl font-bold">Struktur Pemegang Saham (Shareholders)</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-serif text-2xl font-bold">Struktur Pemegang Saham (Shareholders)</h2>
+            {onOpenNetwork && (
+              <button
+                onClick={onOpenNetwork}
+                className="px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                title="Buka Graf Visual Jaringan Pemegang Saham (Shareholder Network)"
+              >
+                <span>🌐 Buka Shareholder Network</span>
+                <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-black">BARU</span>
+              </button>
+            )}
+          </div>
           <p className="text-xs text-[#80887f]">
             Komposisi kepemilikan saham pengendali, institusi besar, publik, dan pemegang saham &gt; 5% resmi BEI.
           </p>
@@ -27,7 +44,7 @@ export const ShareholdersView: React.FC<ShareholdersViewProps> = ({ stocks, onSe
           <select
             value={selectedTicker}
             onChange={(e) => setSelectedTicker(e.target.value)}
-            className="p-2 rounded-xl bg-[#f6f2ea] dark:bg-[#121c20] border border-[#d6ccbb] dark:border-[#304349] font-bold text-xs"
+            className="p-2 rounded-xl bg-[#f6f2ea] dark:bg-[#121c20] border border-[#d6ccbb] dark:border-[#304349] font-bold text-xs cursor-pointer"
           >
             {stocks.map((s) => (
               <option key={s.ticker} value={s.ticker}>

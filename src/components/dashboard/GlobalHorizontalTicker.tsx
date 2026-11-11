@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GlobalAssetData } from '../../types.ts';
 
 interface GlobalHorizontalTickerProps {
-  speed?: 'slow' | 'normal' | 'fast';
+  speed?: 'ultraslow' | 'slow' | 'normal' | 'fast';
   isPaused?: boolean;
   onTogglePause?: () => void;
   onSelectAsset?: (asset: GlobalAssetData) => void;
 }
 
 export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
-  speed = 'slow',
+  speed = 'ultraslow',
   isPaused: externalPaused,
   onTogglePause,
   onSelectAsset,
@@ -94,6 +94,12 @@ export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
     }
   };
 
+  const globalTickerDuration = React.useMemo(() => {
+    const count = filteredAssets.length || 25;
+    const secsPerItem = speed === 'ultraslow' ? 12 : speed === 'slow' ? 8 : 5;
+    return Math.max(count * secsPerItem, 250);
+  }, [filteredAssets.length, speed]);
+
   return (
     <div className="flex items-center gap-2 pt-1 pb-1 border-t border-[#e5ddd0]/60 dark:border-[#26363d]/60 text-[11px] bg-[#f3ede1]/40 dark:bg-[#152328]/50 relative z-20">
       {/* Left Compact Category Selector */}
@@ -166,6 +172,7 @@ export const GlobalHorizontalTicker: React.FC<GlobalHorizontalTickerProps> = ({
       <div className="overflow-hidden relative flex-1 min-w-0">
         <div
           className={`global-ticker-horizontal-track speed-${speed} ${isPaused ? 'paused' : ''}`}
+          style={{ animationDuration: `${globalTickerDuration}s` }}
         >
           {[...filteredAssets, ...filteredAssets].map((asset, idx) => {
             const isUp = asset.changePercent >= 0;

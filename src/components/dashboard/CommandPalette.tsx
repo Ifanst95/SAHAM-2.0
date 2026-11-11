@@ -50,6 +50,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { key: 'indeks', label: 'Indeks Saham BEI', group: 'Analisis Pasar' },
     { key: 'grup', label: 'Grup Konglomerat', group: 'Analisis Pasar' },
     { key: 'pemegang', label: 'Pemegang Saham', group: 'Data Emiten' },
+    { key: 'network', label: 'Shareholder Network (Jaringan Pemegang Saham BEI)', group: 'Data Emiten' },
     { key: 'orangdalam', label: 'Transaksi Orang Dalam', group: 'Data Emiten' },
     { key: 'corporate', label: 'Kalender Aksi Korporasi', group: 'Data Emiten' },
     { key: 'hsc', label: 'Saham HSC (Kandidat Kuat)', group: 'Data Emiten' },

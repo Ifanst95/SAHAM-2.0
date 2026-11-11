@@ -10,15 +10,23 @@ export const MarketFundamentalsView: React.FC<MarketFundamentalsViewProps> = ({ 
   const [sortField, setSortField] = useState<'roe' | 'pe' | 'pbv' | 'divYield'>('roe');
 
   const fundamentalStocks = stocks.map((s) => {
-    // Generate realistic fundamental metrics based on ticker
+    // Generate realistic, distinctive fundamental metrics based on stock sector & price
     const isBank = s.sector === 'Financials';
     const isEnergy = s.sector === 'Energy';
-    const pe = isBank ? 12.4 : isEnergy ? 6.2 : 18.5;
-    const pbv = isBank ? 2.1 : isEnergy ? 1.4 : 3.8;
-    const roe = isBank ? 18.5 : isEnergy ? 24.2 : 14.1;
-    const der = isBank ? 5.2 : isEnergy ? 0.6 : 0.8;
-    const divYield = isEnergy ? 10.5 : isBank ? 4.2 : 2.5;
-    const netMargin = isBank ? 28.5 : isEnergy ? 21.0 : 11.4;
+    const isConsumer = s.sector?.includes('Consumer');
+    const isTech = s.sector === 'Technology';
+    const isBasic = s.sector === 'Basic Materials';
+
+    let basePe = isBank ? 12.4 : isEnergy ? 6.2 : isConsumer ? 18.5 : isTech ? 28.4 : isBasic ? 14.1 : 13.5;
+    const pe = Number((basePe * (1 + (s.changePercent * 0.015))).toFixed(1));
+
+    let basePbv = isBank ? 2.1 : isEnergy ? 1.4 : isConsumer ? 3.8 : isTech ? 4.2 : 1.8;
+    const pbv = Number((basePbv * (1 + (s.changePercent * 0.01))).toFixed(2));
+
+    const roe = Number(((isBank ? 18.5 : isEnergy ? 24.2 : isConsumer ? 16.4 : 14.1) + ((s.momentumScore || 5) * 0.5)).toFixed(1));
+    const der = isBank ? 5.2 : isEnergy ? 0.6 : isConsumer ? 0.8 : 0.75;
+    const divYield = isEnergy ? 10.5 : isBank ? 4.2 : isConsumer ? 3.1 : 2.5;
+    const netMargin = isBank ? 28.5 : isEnergy ? 21.0 : isConsumer ? 12.5 : 11.4;
 
     return {
       ...s,
